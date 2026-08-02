@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản trị - Duyệt dự án - LocalVest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="page-shell">
+  <div id="navbar-root"></div>
+  <main class="page-main">
+    <div class="container">
+      <h1 class="page-title">Bảng quản trị — Duyệt dự án</h1>
+      <p class="page-subtitle">Hệ thống AI (Computer Vision + NLP) tự động chấm điểm nguy cơ gian lận. Dự án có điểm &gt;50% được tô đỏ, cần kiểm tra kỹ trước khi duyệt.</p>
+
+      <div class="section-title">Đang chờ duyệt (<span id="pending-count">0</span>)</div>
+      <div class="table-wrap mb-16">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Mã dự án</th><th>Tên dự án</th><th>Người tạo</th><th>Ngày gửi</th>
+              <th>Điểm nguy cơ AI</th><th>Trạng thái</th><th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody id="pending-body"></tbody>
+        </table>
+      </div>
+
+      <div class="section-title mt-24">Lịch sử xử lý</div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Tên dự án</th><th>Người tạo</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead>
+          <tbody id="history-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="reject-modal">
+  <div class="modal-box">
+    <div class="modal-title">Từ chối / Khoá dự án</div>
+    <div class="field" style="margin-bottom:0;">
+      <label>Lý do (tuỳ chọn — sẽ gửi email cho người tạo dự án)</label>
+      <textarea class="input" id="reject-reason" rows="3" placeholder="VD: Hình ảnh nghi trùng lặp, cần bổ sung minh chứng..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="reject-cancel">Huỷ</button>
+      <button class="btn btn-danger" id="reject-confirm">Xác nhận từ chối</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+  LV.requireLogin();
+  LV.renderNavbar('admin');
+
+  let rejectTargetId = null;
+
+  function fraudCell(score) {
+    const cls = score > 50 ? 'badge-danger' : score > 20 ? 'badge-warning' : 'badge-success';
+    return `<span class="badge ${cls}">${score}%</span>`;
+  }
+
+  function render() {
+    const queue = LV.getQueue();
+    const pending = queue.filter((q) => q.status === 'pending');
+    const processed = queue.filter((q) => q.status !== 'pending');
+
+    document.getElementById('pending-count').textContent = pending.length;
+    document.getElementById('pending-body').innerHTML = pending.length ? pending.map((q) => `
+      <tr class="${q.fraudScore > 50 ? 'row-flag' : ''}">
+        <td>${q.id}</td>
+        <td>${q.projectName}</td>
+        <td>${q.creatorName}</td>
+        <td>${LV.formatDate(q.submittedAt)}</td>
+        <td>${fraudCell(q.fraudScore)} <span class="text-sm text-muted">${q.fraudReason}</span></td>
+        <td><span class="badge badge-neutral">Pending</span></td>
+        <td>
+          <div class="flex gap-8">
+            <button class="btn btn-primary btn-sm" data-approve="${q.id}">Phê duyệt</button>
+            <button class="btn btn-outline btn-sm" data-reject="${q.id}">Từ chối/Khoá</button>
+          </div>
+        </td>
+      </tr>`).join('') : `<tr><td colspan="7" class="text-center text-muted">Không có dự án nào đang chờ duyệt.</td></tr>`;
+
+    document.getElementById('history-body').innerHTML = processed.length ? processed.map((q) => `
+      <tr>
+        <td>${q.projectName}</td>
+        <td>${q.creatorName}</td>
+        <td>${q.status === 'approved'
+          ? '<span class="badge badge-success">Đã duyệt — Active</span>'
+          : '<span class="badge badge-danger">Đã từ chối — Locked</span>'}</td>
+        <td class="text-sm text-muted">${q.rejectReason || '—'}</td>
+      </tr>`).join('') : `<tr><td colspan="4" class="text-center text-muted">Chưa có lịch sử xử lý.</td></tr>`;
+
+    document.querySelectorAll('[data-approve]').forEach((btn) => btn.addEventListener('click', () => approve(btn.dataset.approve)));
+    document.querySelectorAll('[data-reject]').forEach((btn) => btn.addEventListener('click', () => openReject(btn.dataset.reject)));
+  }
+
+  function approve(id) {
+    const queue = LV.getQueue();
+    const item = queue.find((q) => q.id === id);
+    if (!item) return;
+    item.status = 'approved';
+    LV.saveQueue(queue);
+
+    const covers = ['cover-a', 'cover-b', 'cover-c', 'cover-d', 'cover-e', 'cover-f'];
+    const icons = ['📚', '♻️', '🎓', '🌳', '🚰', '🏥'];
+    const projects = LV.getProjects();
+    projects.push({
+      id: LV.uid('proj'),
+      name: item.projectName,
+      category: 'Cộng đồng',
+      icon: icons[Math.floor(Math.random() * icons.length)],
+      cover: covers[Math.floor(Math.random() * covers.length)],
+      location: item.location,
+      distanceKm: Number((Math.random() * 4 + 0.5).toFixed(1)),
+      target: item.target,
+      raised: 0,
+      lat: LV.BASE_LAT, lng: LV.BASE_LNG,
+      description: item.description,
+      creatorName: item.creatorName,
+      creatorVerified: false,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      milestones: item.milestones.map((m) => ({ name: m.name, amount: m.amount, status: 'pending', desc: m.desc || 'Chờ đủ điều kiện giải ngân theo thoả thuận.' })),
+    });
+    LV.saveProjects(projects);
+    LV.toast(`Đã duyệt dự án "${item.projectName}" — hiển thị công khai trên trang Khám phá`, 'success');
+    render();
+  }
+
+  function openReject(id) {
+    rejectTargetId = id;
+    document.getElementById('reject-reason').value = '';
+    document.getElementById('reject-modal').classList.add('open');
+  }
+  document.getElementById('reject-cancel').addEventListener('click', () => document.getElementById('reject-modal').classList.remove('open'));
+  document.getElementById('reject-confirm').addEventListener('click', () => {
+    const queue = LV.getQueue();
+    const item = queue.find((q) => q.id === rejectTargetId);
+    if (item) {
+      item.status = 'rejected';
+      item.rejectReason = document.getElementById('reject-reason').value.trim() || 'Không đạt yêu cầu kiểm duyệt.';
+      LV.saveQueue(queue);
+      LV.toast(`Đã từ chối dự án "${item.projectName}" và gửi email thông báo tới người tạo`, 'error');
+    }
+    document.getElementById('reject-modal').classList.remove('open');
+    render();
+  });
+
+  render();
+</script>
+</body>
+</html>
