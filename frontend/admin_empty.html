@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LocalVest Admin — Duyệt Dự Án Gửi Đến</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              DEFAULT: '#1E3A5F',
+              dark: '#162C48',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-[#F9FAFB] font-sans text-[#111827] min-h-screen flex flex-col justify-between antialiased">
+
+  <!-- Header Section -->
+  <header class="w-full h-16 px-4 md:px-8 bg-white border-b border-[#E5E7EB] flex justify-between items-center sticky top-0 z-20 shadow-xs">
+    <div class="flex items-center gap-2.5">
+      <div class="w-8 h-8 bg-brand rounded-lg flex items-center justify-center text-white shadow-xs">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 21h18"/>
+          <path d="M3 10h18"/>
+          <path d="M5 6l7-3 7 3"/>
+          <path d="M4 10v11"/>
+          <path d="M20 10v11"/>
+        </svg>
+      </div>
+      <span class="text-brand text-lg font-extrabold tracking-tight">LocalVest Admin</span>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <span class="text-[#374151] text-sm font-semibold hidden sm:inline">Nguyễn Admin</span>
+      <div class="w-9 h-9 bg-[#F3F4F6] border border-[#E5E7EB] rounded-full flex items-center justify-center">
+        <span class="text-[#374151] text-xs font-bold">NA</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="w-full max-w-[1440px] mx-auto py-6 md:py-8 px-4 md:px-8 flex-grow flex flex-col gap-6">
+    
+    <!-- Title Section -->
+    <div class="flex flex-col gap-1">
+      <h1 class="text-[#111827] text-xl md:text-2xl font-bold">Duyệt Dự Án Gửi Đến</h1>
+      <p class="text-[#6B7280] text-sm">
+        Hệ thống kiểm tra nội dung và xác thực rủi ro tự động bằng AI Fraud Detection.
+      </p>
+    </div>
+
+    <!-- Filters & Search Bar -->
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+      <!-- Search Input -->
+      <div class="w-full sm:w-80 h-10 px-3 bg-white rounded-lg border border-[#E5E7EB] flex items-center gap-2 focus-within:border-brand focus-within:ring-1 focus-within:ring-brand transition-all shadow-xs">
+        <svg class="w-4 h-4 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input 
+          type="text" 
+          placeholder="Tìm kiếm ID, tên dự án..." 
+          class="w-full bg-transparent text-sm text-[#111827] placeholder-[#6B7280] focus:outline-none"
+        />
+      </div>
+
+      <!-- Filter Dropdown -->
+      <div class="w-full sm:w-72 h-10 px-3 bg-white rounded-lg border border-[#E5E7EB] flex items-center justify-between gap-2 cursor-pointer hover:border-[#D1D5DB] transition-colors shadow-xs">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 bg-[#DC2626] rounded-full shrink-0"></span>
+          <span class="text-[#374151] text-sm font-medium truncate">Lọc theo AI Score: Rủi ro cao</span>
+        </div>
+        <svg class="w-4 h-4 text-[#6B7280] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Empty State Container -->
+    <div class="w-full bg-white rounded-xl border border-[#E5E7EB] shadow-xs py-16 px-6 flex flex-col items-center justify-center text-center my-auto">
+      <!-- Success / Empty Icon -->
+      <div class="w-20 h-20 bg-[#ECFDF5] border border-[#A7F3D0] rounded-full flex items-center justify-center mb-5 text-[#10B981] shadow-xs">
+        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+
+      <!-- Heading -->
+      <h2 class="text-lg md:text-xl font-bold text-[#111827] tracking-tight max-w-lg">
+        HIỆN TẠI KHÔNG CÓ DỰ ÁN NÀO CHỜ DUYỆT
+      </h2>
+
+      <!-- Subtitle -->
+      <p class="text-[#6B7280] text-sm mt-2 max-w-md">
+        Tất cả các dự án gửi đến đã được xử lý xong hoặc chưa có hồ sơ mới được nộp.
+      </p>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="w-full py-4 text-center text-xs text-[#9CA3AF] border-t border-[#E5E7EB]">
+    &copy; 2026 LocalVest Administration Platform. All rights reserved.
+  </footer>
+
+</body>
+</html>
