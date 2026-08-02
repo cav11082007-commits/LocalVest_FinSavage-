@@ -8,7 +8,8 @@ const LV = (function () {
     user: 'lv_user',
     projects: 'lv_projects',
     queue: 'lv_queue',
-    ledger: 'lv_ledger', // { [projectId]: [entries] }
+    ledger: 'lv_ledger',
+    registeredEmails: 'lv_registered_emails',
   };
 
   const COVERS = ['cover-a', 'cover-b', 'cover-c', 'cover-d', 'cover-e', 'cover-f'];
@@ -249,10 +250,25 @@ const LV = (function () {
         },
       ]));
     }
+    if (!localStorage.getItem(KEYS.registeredEmails)) {
+      localStorage.setItem(KEYS.registeredEmails, JSON.stringify(['demo@localvest.vn']));
+    }
   }
 
   function getUser() {
     try { return JSON.parse(localStorage.getItem(KEYS.user)); } catch (e) { return null; }
+  }
+  function getRegisteredEmails() {
+    return JSON.parse(localStorage.getItem(KEYS.registeredEmails) || '[]');
+  }
+  function addRegisteredEmail(email) {
+    const list = getRegisteredEmails();
+    const lower = email.toLowerCase();
+    if (!list.includes(lower)) { list.push(lower); localStorage.setItem(KEYS.registeredEmails, JSON.stringify(list)); }
+  }
+  async function checkEmailExists(email) {
+    await new Promise((r) => setTimeout(r, 500));
+    return getRegisteredEmails().includes(email.toLowerCase());
   }
   function setUser(u) { localStorage.setItem(KEYS.user, JSON.stringify(u)); }
   function logout() { localStorage.removeItem(KEYS.user); window.location.href = 'login_page.html'; }
@@ -337,6 +353,7 @@ const LV = (function () {
     getProjects, saveProjects, getProject,
     getQueue, saveQueue,
     getLedger, pushLedger,
+    getRegisteredEmails, addRegisteredEmail, checkEmailExists,
     toast, renderNavbar, uid,
     BASE_LAT, BASE_LNG,
   };
