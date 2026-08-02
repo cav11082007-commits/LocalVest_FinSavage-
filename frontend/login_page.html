@@ -31,7 +31,7 @@
     <div id="login-error" class="banner banner-danger hidden">Đăng nhập chưa thành công, vui lòng thử lại sau.</div>
 
     <div class="flex flex-col gap-16" id="login-social">
-    <button type="button" class="social-btn" data-provider="Google">
+      <button type="button" class="social-btn" data-provider="Google">
         <svg class="btn-icon" width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
           <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
           <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/>
@@ -41,30 +41,29 @@
         <span class="btn-label">Đăng nhập bằng Google</span>
         <span class="btn-spinner"></span>
       </button>
+
       <button type="button" class="social-btn" data-provider="Apple">
-        <span></span> Đăng nhập bằng Apple
+        <svg class="btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16.365 1.43c0 1.14-.415 2.19-1.24 3.03-.9.93-2.19 1.53-3.24 1.44-.135-1.11.42-2.25 1.23-3.06.87-.9 2.28-1.44 3.24-1.41.03.15.01.15.01 0zM20.55 17.06c-.55 1.24-.81 1.8-1.51 2.9-1 1.56-2.4 3.5-4.14 3.51-1.55.01-1.95-1-4.06-1-2.11 0-2.55.99-4.11.98-1.74-.02-3.06-1.77-4.06-3.32C.66 16.3-.4 11.1 1.5 7.62c.94-1.72 2.62-2.81 4.45-2.83 1.71-.03 3.32 1.15 4.36 1.15 1.03 0 3.02-1.42 5.09-1.21.87.04 3.31.35 4.87 2.65-.13.08-2.91 1.7-2.87 5.06.04 4.02 3.53 5.36 3.57 5.38-.03.09-.55 1.9-1.82 3.24z"/>
+        </svg>
+        <span class="btn-label">Đăng nhập bằng Apple</span>
+        <span class="btn-spinner"></span>
       </button>
+
+      <!-- Icon Email đổi sang SVG cùng kích thước 20x20 với Google, để thẳng hàng thay vì emoji ✉️ -->
       <button type="button" class="social-btn" id="btn-email-toggle">
-        <span>✉️</span> Đăng nhập bằng Email
+        <svg class="btn-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/>
+          <path d="M3.5 6.2l8.5 6.3 8.5-6.3"/>
+        </svg>
+        <span class="btn-label">Đăng nhập bằng Email</span>
       </button>
     </div>
 
-    <!-- Email / OTP inline flow -->
-    <div id="email-flow" class="hidden flex flex-col gap-16">
-      <div class="field" id="email-field" style="margin-bottom:0;">
-        <label>Email</label>
-        <input type="email" class="input" id="login-email" placeholder="ban@email.com">
-      </div>
-      <button type="button" class="btn btn-primary btn-block" id="btn-send-otp">Gửi mã xác thực (OTP)</button>
-
-      <div id="otp-block" class="hidden flex flex-col gap-16">
-        <div class="field" style="margin-bottom:0;">
-          <label>Nhập mã OTP gồm 6 số (demo: 123456)</label>
-          <input type="text" maxlength="6" class="input" id="login-otp" placeholder="••••••">
-        </div>
-        <button type="button" class="btn btn-primary btn-block" id="btn-verify-otp">Xác nhận đăng nhập</button>
-      </div>
-    </div>
+    <label class="terms-check">
+      <input type="checkbox" id="login-terms">
+      <span>Bằng việc tiếp tục, bạn đồng ý với <a href="#" class="open-terms">Điều khoản sử dụng</a> của LocalVest.</span>
+    </label>
 
     <div class="auth-divider">
       <div class="line"></div><div>Hoặc đăng ký tài khoản mới</div><div class="line"></div>
@@ -73,16 +72,65 @@
     <div class="auth-switch">
       Chưa có tài khoản? <a href="#" id="go-register">Đăng ký ngay</a>
     </div>
+  </div>
 
-    <div class="auth-footer-note">
-      Bằng việc tiếp tục, bạn đồng ý với <a href="#">Điều khoản sử dụng</a> của LocalVest.
+  <!-- ============ EMAIL VIEW (màn phụ tách riêng, KHÔNG chung màn với login-view) ============ -->
+  <div class="auth-card hidden" id="email-view">
+    <a href="#" id="email-back-to-login" class="back-link">← Quay lại đăng nhập</a>
+
+    <div class="flex flex-col items-center" style="gap:16px;">
+      <div class="auth-logo-badge">
+        <img src="https://gmcconsultingvn.com/wp-content/uploads/2022/03/ic-ft-2.png" alt="Handshake Logo" class="logo-icon">
+      </div>
+      <div>
+        <div class="auth-title" style="font-size:22px;">Đăng nhập bằng Email</div>
+        <div class="auth-subtitle" id="email-view-subtitle">Nhập email để tiếp tục</div>
+      </div>
+    </div>
+
+    <div id="email-error" class="banner banner-danger hidden">Đăng nhập chưa thành công, vui lòng thử lại sau.</div>
+
+    <!-- Bước 1: nhập email -->
+    <div id="email-step" class="flex flex-col gap-16">
+      <div class="field" id="email-field" style="margin-bottom:0;">
+        <label>Email</label>
+        <input type="email" class="input" id="login-email" placeholder="ban@email.com">
+        <div class="error-text">Vui lòng nhập email hợp lệ.</div>
+      </div>
+      <button type="button" class="btn btn-primary btn-block" id="btn-email-continue">Tiếp tục</button>
+    </div>
+
+    <!-- Bước 2: chỉ hiện khi tài khoản đã tồn tại — nhập mật khẩu + mã xác thực -->
+    <div id="auth-step" class="hidden flex flex-col gap-16">
+      <div class="hint" style="font-size:13px;color:var(--color-text-muted);">
+        Tài khoản: <strong id="auth-step-email"></strong>
+      </div>
+
+      <div class="field" id="password-field" style="margin-bottom:0;">
+        <label>Mật khẩu</label>
+        <input type="password" class="input" id="login-password" placeholder="Nhập mật khẩu">
+        <div class="error-text">Mật khẩu không đúng.</div>
+      </div>
+
+      <div class="field" id="otp-field" style="margin-bottom:0;">
+        <label>Mã xác thực gồm 6 số (đã gửi đến email của bạn, demo: 123456)</label>
+        <input type="text" maxlength="6" class="input" id="login-otp" placeholder="••••••">
+        <div class="error-text">Mã OTP không đúng hoặc đã hết hạn.</div>
+      </div>
+
+      <button type="button" class="otp-resend" id="btn-resend-otp">Gửi lại mã</button>
+      <button type="button" class="btn btn-primary btn-block" id="btn-verify-otp">Xác nhận đăng nhập</button>
     </div>
   </div>
 
   <!-- ============ REGISTER VIEW ============ -->
   <div class="auth-card hidden" id="register-view">
+    <a href="#" id="register-back-to-login" class="back-link">← Quay lại đăng nhập</a>
+
     <div class="flex flex-col items-center" style="gap:16px;">
-      <div class="auth-logo-badge">🏘️</div>
+      <div class="auth-logo-badge">
+        <img src="https://gmcconsultingvn.com/wp-content/uploads/2022/03/ic-ft-2.png" alt="Handshake Logo" class="logo-icon">
+      </div>
       <div>
         <div class="auth-title">Tạo tài khoản</div>
         <div class="auth-subtitle">Tham gia cộng đồng gọi vốn minh bạch</div>
@@ -105,20 +153,25 @@
         <input type="tel" class="input" id="reg-phone" placeholder="09xxxxxxxx" required>
         <div class="error-text">Vui lòng nhập số điện thoại.</div>
       </div>
-      <div class="field" style="margin-bottom: 8px;">
+      <div class="field" style="margin-bottom: 16px;">
         <label>Mật khẩu</label>
         <input type="password" class="input" id="reg-password" placeholder="Tối thiểu 6 ký tự" required>
         <div class="error-text">Mật khẩu cần tối thiểu 6 ký tự.</div>
       </div>
+
+      <div class="field" id="terms-field" style="margin-bottom:0;">
+        <label class="terms-check">
+          <input type="checkbox" id="reg-terms">
+          <span>Tôi đồng ý với <a href="#" class="open-terms">Điều khoản sử dụng</a> của LocalVest.</span>
+        </label>
+        <div class="error-text">Bạn cần đồng ý với Điều khoản sử dụng để tiếp tục.</div>
+      </div>
+
       <button type="submit" class="btn btn-primary btn-block mt-16">Đăng ký ngay</button>
     </form>
 
     <div class="auth-switch">
       Đã có tài khoản? <a href="#" id="go-login">Đăng nhập</a>
-    </div>
-
-    <div class="auth-footer-note">
-      Bằng việc đăng ký, bạn đồng ý với <a href="#">Điều khoản sử dụng</a> của LocalVest.
     </div>
   </div>
 
@@ -127,75 +180,250 @@
     <div class="auth-copyright">© 2026 LocalVest. Bản quyền thuộc về nhóm FinSavage.</div>
   </div>
 </div>
+
+<!-- ============ MODAL: Điều khoản sử dụng ============ -->
+<div class="modal-overlay" id="terms-modal">
+  <div class="modal-box">
+    <div class="modal-title">Điều khoản sử dụng</div>
+    <div class="text-sm text-muted" style="max-height:320px; overflow-y:auto; line-height:1.6;">
+      Đây là nội dung điều khoản sử dụng demo cho bản MVP của LocalVest. Nội dung chính thức sẽ được
+      Pháp chế công ty cung cấp sau và cập nhật lại tại đây trước khi ra bản chính thức.
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-primary" id="terms-agree">Tôi đồng ý</button>
+    </div>
+  </div>
+</div>
+
+<script
+  async
+  crossorigin="anonymous"
+  data-clerk-publishable-key="pk_test_Zmx5aW5nLWpvZXktODMuY2xlcmsuYWNjb3VudHMuZGV2JA"
+  src="https://flying-joey-83.clerk.accounts.dev"
+  type="text/javascript"
+></script>
 <script src="js/app.js"></script>
 <script>
-  // Nếu đã đăng nhập sẵn thì vào thẳng Home
   if (LV.getUser()) window.location.href = 'home.html';
 
-  const loginView = document.getElementById('login-view');
-  const registerView = document.getElementById('register-view');
-  document.getElementById('go-register').addEventListener('click', (e) => {
-    e.preventDefault(); loginView.classList.add('hidden'); registerView.classList.remove('hidden');
-  });
-  document.getElementById('go-login').addEventListener('click', (e) => {
-    e.preventDefault(); registerView.classList.add('hidden'); loginView.classList.remove('hidden');
-  });
+  /* ---------------- Chuyển màn hình ---------------- */
+  function showView(id) {
+    ['login-view', 'email-view', 'register-view'].forEach((v) => {
+      document.getElementById(v).classList.toggle('hidden', v !== id);
+    });
+  }
+  document.getElementById('go-register').addEventListener('click', (e) => { e.preventDefault(); showView('register-view'); });
+  document.getElementById('go-login').addEventListener('click', (e) => { e.preventDefault(); showView('login-view'); });
+  document.getElementById('email-back-to-login').addEventListener('click', (e) => { e.preventDefault(); resetEmailFlow(); showView('login-view'); });
+  document.getElementById('register-back-to-login').addEventListener('click', (e) => { e.preventDefault(); showView('login-view'); });
 
+  /* ---------------- Modal điều khoản: nhớ checkbox nào vừa mở modal để auto-tick ---------------- */
+  const termsModal = document.getElementById('terms-modal');
+  let activeTermsCheckbox = null;
+  document.querySelectorAll('.terms-check').forEach((label) => {
+    label.querySelector('.open-terms')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      activeTermsCheckbox = label.querySelector('input[type="checkbox"]');
+      termsModal.classList.add('open');
+    });
+  });
+  document.getElementById('terms-agree').addEventListener('click', () => {
+    if (activeTermsCheckbox) activeTermsCheckbox.checked = true;
+    termsModal.classList.remove('open');
+  });
+  termsModal.addEventListener('click', (e) => { if (e.target === termsModal) termsModal.classList.remove('open'); });
+
+  /* ---------------- Đăng nhập thành công dùng chung ---------------- */
   function loginSuccess(name, email) {
     LV.setUser({ name: name || email.split('@')[0], email });
     LV.toast('Đăng nhập thành công, đang chuyển hướng...', 'success');
-    setTimeout(() => { window.location.href = 'home.html'; }, 600); // mô phỏng < 1.5s theo yêu cầu MVP
+    setTimeout(() => { window.location.href = 'home.html'; }, 600);
   }
 
-  // Social login (Google/Apple) — mock, luôn thành công sau độ trễ giả lập
-  document.querySelectorAll('.social-btn[data-provider]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const provider = btn.dataset.provider;
-      btn.disabled = true;
-      const original = btn.innerHTML;
-      btn.innerHTML = 'Đang xác thực với ' + provider + '...';
-      setTimeout(() => {
-        loginSuccess(LV.randomName(), provider.toLowerCase() + '.user@example.com');
-      }, 700);
+  /* ---------------- Social login: Google + Apple (Clerk SDK thật) ---------------- */
+  const socialBtns = document.querySelectorAll('.social-btn');
+  function setLoadingState(activeBtn) {
+    socialBtns.forEach(btn => {
+      btn.classList.toggle('is-loading', btn === activeBtn);
+      btn.classList.toggle('is-disabled', btn !== activeBtn);
     });
-  });
+  }
+  function clearLoadingState() {
+    socialBtns.forEach(btn => btn.classList.remove('is-loading', 'is-disabled'));
+  }
+  function showLoginError() {
+    clearLoadingState();
+    document.getElementById('login-error').classList.remove('hidden');
+  }
 
-  // Email + OTP flow
-  const emailFlow = document.getElementById('email-flow');
-  document.getElementById('btn-email-toggle').addEventListener('click', () => {
-    emailFlow.classList.toggle('hidden');
-  });
-
-  document.getElementById('btn-send-otp').addEventListener('click', () => {
-    const emailInput = document.getElementById('login-email');
-    const field = document.getElementById('email-field');
-    if (!emailInput.value.includes('@')) {
-      field.classList.add('has-error');
+  document.querySelector('.social-btn[data-provider="Google"]').addEventListener('click', async (e) => {
+    if (!document.getElementById('login-terms').checked) {
+      LV.toast('Vui lòng đồng ý với Điều khoản sử dụng trước khi tiếp tục.', 'error');
       return;
     }
+    document.getElementById('login-error').classList.add('hidden');
+    setLoadingState(e.currentTarget);
+    try {
+      await window.Clerk.load();
+      await window.Clerk.client.signIn.authenticateWithRedirect({
+        strategy: 'oauth_google',
+        redirectUrl: window.location.href.split('?')[0],
+        redirectUrlComplete: 'home.html',
+      });
+    } catch (err) {
+      console.error('Đăng nhập Google thất bại:', err);
+      showLoginError();
+    }
+  });
+
+  document.querySelector('.social-btn[data-provider="Apple"]').addEventListener('click', async (e) => {
+    if (!document.getElementById('login-terms').checked) {
+      LV.toast('Vui lòng đồng ý với Điều khoản sử dụng trước khi tiếp tục.', 'error');
+      return;
+    }
+    document.getElementById('login-error').classList.add('hidden');
+    setLoadingState(e.currentTarget);
+    try {
+      await window.Clerk.load();
+      await window.Clerk.client.signIn.authenticateWithRedirect({
+        strategy: 'oauth_apple',
+        redirectUrl: window.location.href.split('?')[0],
+        redirectUrlComplete: 'home.html',
+      });
+    } catch (err) {
+      console.error('Đăng nhập Apple thất bại:', err);
+      showLoginError();
+    }
+  });
+
+  // Xử lý khi trang được Google/Apple redirect quay lại
+  (async function handlePossibleRedirect() {
+    const params = new URLSearchParams(window.location.search);
+    const isReturning = params.has('__clerk_status') || params.has('__clerk_created_session');
+    if (!isReturning) return;
+    try {
+      await window.Clerk.load();
+      await window.Clerk.handleRedirectCallback({ redirectUrlComplete: 'home.html' });
+      if (window.Clerk.user) {
+        LV.setUser({
+          name: window.Clerk.user.fullName || window.Clerk.user.primaryEmailAddress?.emailAddress,
+          email: window.Clerk.user.primaryEmailAddress?.emailAddress,
+        });
+        window.location.href = 'home.html';
+      }
+    } catch (err) {
+      console.error('Xác thực callback thất bại:', err);
+      showLoginError();
+    }
+  })();
+
+  /* ---------------- Chuyển sang màn Email (tách riêng hẳn) ---------------- */
+  document.getElementById('btn-email-toggle').addEventListener('click', () => {
+    if (!document.getElementById('login-terms').checked) {
+      LV.toast('Vui lòng đồng ý với Điều khoản sử dụng trước khi tiếp tục.', 'error');
+      return;
+    }
+    resetEmailFlow();
+    showView('email-view');
+  });
+
+  function resetEmailFlow() {
+    document.getElementById('email-step').classList.remove('hidden');
+    document.getElementById('auth-step').classList.add('hidden');
+    document.getElementById('email-view-subtitle').textContent = 'Nhập email để tiếp tục';
+    document.getElementById('email-error').classList.add('hidden');
+    document.getElementById('login-email').value = '';
+    document.getElementById('email-field').classList.remove('has-error');
+    clearOtpTimer();
+  }
+
+  const btnEmailContinue = document.getElementById('btn-email-continue');
+  btnEmailContinue.addEventListener('click', async () => {
+    const emailInput = document.getElementById('login-email');
+    const field = document.getElementById('email-field');
+    const email = emailInput.value.trim();
+
+    if (!email.includes('@')) { field.classList.add('has-error'); return; }
     field.classList.remove('has-error');
-    document.getElementById('otp-block').classList.remove('hidden');
-    LV.toast('Đã gửi mã OTP (demo): 123456', 'info');
+    document.getElementById('email-error').classList.add('hidden');
+
+    btnEmailContinue.disabled = true;
+    btnEmailContinue.textContent = 'Đang kiểm tra...';
+    try {
+      const exists = await LV.checkEmailExists(email); // endpoint mock, xem app.js
+      if (!exists) {
+        document.getElementById('reg-email').value = email;
+        showView('register-view');
+      } else {
+        document.getElementById('auth-step-email').textContent = email;
+        document.getElementById('email-view-subtitle').textContent = 'Nhập mật khẩu và mã xác thực để tiếp tục';
+        document.getElementById('email-step').classList.add('hidden');
+        document.getElementById('auth-step').classList.remove('hidden');
+        LV.toast('Đã gửi mã xác thực (demo): 123456', 'info');
+        startOtpCooldown();
+      }
+    } catch (err) {
+      console.error('Kiểm tra email thất bại:', err);
+      document.getElementById('email-error').classList.remove('hidden');
+    } finally {
+      btnEmailContinue.disabled = false;
+      btnEmailContinue.textContent = 'Tiếp tục';
+    }
   });
 
   document.getElementById('btn-verify-otp').addEventListener('click', () => {
-    const otp = document.getElementById('login-otp').value.trim();
-    const errorBanner = document.getElementById('login-error');
-    if (otp !== '123456') {
-      errorBanner.classList.remove('hidden');
-      return;
-    }
-    errorBanner.classList.add('hidden');
-    loginSuccess(null, document.getElementById('login-email').value.trim());
+    const passwordInput = document.getElementById('login-password');
+    const otpInput = document.getElementById('login-otp');
+    const passwordField = document.getElementById('password-field');
+    const otpField = document.getElementById('otp-field');
+
+    passwordField.classList.remove('has-error');
+    otpField.classList.remove('has-error');
+    document.getElementById('email-error').classList.add('hidden');
+
+    let ok = true;
+    if (passwordInput.value.trim().length < 1) { passwordField.classList.add('has-error'); ok = false; }
+    if (otpInput.value.trim() !== '123456') { otpField.classList.add('has-error'); ok = false; }
+    if (!ok) return;
+
+    loginSuccess(null, document.getElementById('auth-step-email').textContent);
   });
 
-  // Register form
+  let otpTimer = null;
+  const btnResendOtp = document.getElementById('btn-resend-otp');
+  function startOtpCooldown() {
+    let seconds = 60;
+    btnResendOtp.disabled = true;
+    btnResendOtp.textContent = `Gửi lại mã sau ${seconds}s`;
+    clearOtpTimer();
+    otpTimer = setInterval(() => {
+      seconds -= 1;
+      if (seconds <= 0) {
+        clearOtpTimer();
+        btnResendOtp.disabled = false;
+        btnResendOtp.textContent = 'Gửi lại mã';
+      } else {
+        btnResendOtp.textContent = `Gửi lại mã sau ${seconds}s`;
+      }
+    }, 1000);
+  }
+  function clearOtpTimer() { if (otpTimer) { clearInterval(otpTimer); otpTimer = null; } }
+  btnResendOtp.addEventListener('click', () => {
+    if (btnResendOtp.disabled) return;
+    LV.toast('Đã gửi lại mã xác thực (demo): 123456', 'info');
+    startOtpCooldown();
+  });
+
+  /* ---------------- Register form ---------------- */
   document.getElementById('register-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const name = document.getElementById('reg-name');
     const email = document.getElementById('reg-email');
     const phone = document.getElementById('reg-phone');
     const password = document.getElementById('reg-password');
+    const terms = document.getElementById('reg-terms');
+    const termsField = document.getElementById('terms-field');
+
     let ok = true;
     [
       [name, name.value.trim().length > 1],
@@ -206,7 +434,13 @@
       input.closest('.field').classList.toggle('has-error', !valid);
       if (!valid) ok = false;
     });
+
+    termsField.classList.toggle('has-error', !terms.checked);
+    if (!terms.checked) ok = false;
+
     if (!ok) return;
+
+    LV.addRegisteredEmail(email.value.trim());
     loginSuccess(name.value.trim(), email.value.trim());
   });
 </script>
