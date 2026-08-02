@@ -2,7 +2,17 @@
    LocalVest — Design system dùng chung cho toàn bộ frontend MVP
    Token màu/kiểu chữ được kế thừa từ bản Figma export (login_page.html)
    ========================================================================== */
+.logo-icon {
+  width: 40px;        /* Bạn có thể chỉnh 24px, 32px tùy kích thước mong muốn */
+  height: 40px;       /* Đảm bảo tỉ lệ vuông */
+  object-fit: contain;
+  vertical-align: middle;
+  
+  filter: 
+    drop-shadow(1px 0 0 #2c5cb8)   
+    drop-shadow(0 1px 0.5px #2c5cb8)
 
+}
 :root {
   --color-primary: #2F5496;
   --color-primary-dark: #234072;
