@@ -1,294 +1,266 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LocalVest — Dự án nổi bật quanh bạn</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Inter', sans-serif;
-    background: #F9FAFB;
-    color: #111827;
-  }
-  .header {
-    height: 72px;
-    padding: 0 48px;
-    background: white;
-    border-bottom: 1px solid #E5E7EB;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .brand { display: flex; align-items: center; gap: 12px; }
-  .brand-icon {
-    width: 32px; height: 32px;
-    background: #2F5496;
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .brand-name { color: #2F5496; font-size: 20px; font-weight: 700; }
-  .nav { display: flex; align-items: center; gap: 32px; }
-  .nav-item {
-    font-size: 15px;
-    font-weight: 500;
-    color: #6B7280;
-    text-decoration: none;
-    cursor: pointer;
-  }
-  .nav-item.active { color: #2F5496; font-weight: 600; }
-  .user-area { display: flex; align-items: center; gap: 12px; }
-  .user-name { color: #374151; font-size: 14px; font-weight: 500; }
-  .avatar {
-    width: 36px; height: 36px;
-    background: #E5E7EB;
-    border-radius: 18px;
-    display: flex; align-items: center; justify-content: center;
-    color: #374151; font-size: 14px; font-weight: 600;
-  }
-
-  main {
-    max-width: 1440px;
-    margin: 0 auto;
-    padding: 48px 48px 64px;
-  }
-
-  .page-title { color: #111827; font-size: 28px; font-weight: 700; margin-bottom: 32px; }
-
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 24px;
-  }
-
-  .card {
-    background: white;
-    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.05);
-    overflow: hidden;
-    border-radius: 12px;
-    border: 1px solid #E5E7EB;
-    display: flex;
-    flex-direction: column;
-    transition: transform .15s ease, box-shadow .15s ease;
-    cursor: pointer;
-  }
-  .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.08);
-  }
-  .card img {
-    width: 100%;
-    height: 180px;
-    object-fit: cover;
-    display: block;
-    background: #E5E7EB;
-  }
-  .card-body {
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .card-title {
-    color: #111827;
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1.35;
-  }
-  .progress-track {
-    height: 6px;
-    background: #E5E7EB;
-    border-radius: 3px;
-    overflow: hidden;
-  }
-  .progress-fill {
-    height: 100%;
-    background: #10B981;
-    border-radius: 3px;
-  }
-  .progress-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .progress-pct { color: #111827; font-size: 14px; font-weight: 600; }
-  .progress-goal { color: #6B7280; font-size: 13px; font-weight: 400; }
-
-  .location-banner {
-    position: sticky;
-    bottom: 24px;
-    margin: 40px auto 0;
-    max-width: 1344px;
-    padding: 16px 24px;
-    background: #D97706;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-  }
-  .location-banner span {
-    color: #111827;
-    font-size: 15px;
-    font-weight: 700;
-    text-align: center;
-  }
-  .location-banner button {
-    flex-shrink: 0;
-    padding: 6px 14px;
-    background: #111827;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .location-banner button:hover { background: #1f2937; }
-
-  @media (max-width: 1200px) {
-    .grid { grid-template-columns: repeat(2, 1fr); }
-  }
-  @media (max-width: 640px) {
-    .grid { grid-template-columns: 1fr; }
-    .header { padding: 0 20px; }
-    .nav { display: none; }
-    main { padding: 32px 20px 48px; }
-    .location-banner { flex-direction: column; margin: 32px 16px 0; }
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LocalVest — Dự án nổi bật quanh bạn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              DEFAULT: '#1E3A5F',
+              dark: '#162C48',
+            }
+          }
+        }
+      }
+    }
+  </script>
 </head>
-<body>
+<body class="bg-[#F9FAFB] font-sans text-[#111827] min-h-screen flex flex-col justify-between antialiased relative">
 
-<header class="header">
-  <div class="brand">
-    <div class="brand-icon">
-      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-        <path d="M9 1L1 6v11h16V6L9 1Z" stroke="white" stroke-width="1.8" stroke-linejoin="round"/>
-      </svg>
+  <!-- Header Navigation -->
+  <header class="w-full h-16 px-4 md:px-12 bg-white border-b border-[#E5E7EB] flex justify-between items-center sticky top-0 z-40 shadow-sm">
+    <!-- Logo -->
+    <div class="flex items-center gap-2">
+      <div class="w-7 h-7 bg-brand rounded-md flex items-center justify-center">
+        <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 21h18"/>
+          <path d="M3 10h18"/>
+          <path d="M5 6l7-3 7 3"/>
+          <path d="M4 10v11"/>
+          <path d="M20 10v11"/>
+          <path d="M8 14v3"/>
+          <path d="M12 14v3"/>
+          <path d="M16 14v3"/>
+        </svg>
+      </div>
+      <span class="text-brand text-lg font-extrabold tracking-tight">LocalVest</span>
     </div>
-    <span class="brand-name">LocalVest</span>
-  </div>
-  <nav class="nav">
-    <a class="nav-item active" href="#">Khám phá</a>
-    <a class="nav-item" href="#">Đăng ký dự án</a>
-    <a class="nav-item" href="#">Dashboard</a>
-  </nav>
-  <div class="user-area">
-    <span class="user-name">Nguyễn Văn A</span>
-    <div class="avatar">NA</div>
-  </div>
-</header>
 
-<main>
-  <h1 class="page-title">Dự án nổi bật quanh bạn</h1>
+    <!-- Nav Items -->
+    <nav class="h-full hidden md:flex items-center gap-8">
+      <a href="#" class="h-full flex items-center text-brand text-sm font-semibold border-b-2 border-brand">Khám phá</a>
+      <a href="#" class="h-full flex items-center text-[#374151] text-sm font-medium hover:text-brand transition-colors">Đăng ký dự án</a>
+      <a href="#" class="h-full flex items-center text-[#374151] text-sm font-medium hover:text-brand transition-colors">Dashboard</a>
+    </nav>
 
-  <div class="grid">
-    <div class="card">
-      <img src="https://placehold.co/318x180" alt="Trạm tái chế nhựa khu phố 5">
-      <div class="card-body">
-        <div class="card-title">Trạm tái chế nhựa khu phố 5</div>
-        <div class="progress-track"><div class="progress-fill" style="width:60%"></div></div>
-        <div class="progress-meta">
-          <span class="progress-pct">60%</span>
-          <span class="progress-goal">Mục tiêu: 10.000.000 VNĐ</span>
-        </div>
+    <!-- User Profile -->
+    <div class="flex items-center gap-3">
+      <span class="text-[#111827] text-sm font-semibold hidden sm:inline">Nguyễn Văn A</span>
+      <div class="w-9 h-8 bg-[#D1D5DB] rounded-full flex items-center justify-center">
+        <span class="text-[#4D5461] text-xs font-bold">NA</span>
       </div>
     </div>
+  </header>
 
-    <div class="card">
-      <img src="https://placehold.co/318x180" alt="Vườn cộng đồng phường Tân Bình">
-      <div class="card-body">
-        <div class="card-title">Vườn cộng đồng phường Tân Bình</div>
-        <div class="progress-track"><div class="progress-fill" style="width:45%"></div></div>
-        <div class="progress-meta">
-          <span class="progress-pct">45%</span>
-          <span class="progress-goal">Mục tiêu: 25.000.000 VNĐ</span>
+  <!-- Main Section -->
+  <main class="w-full max-w-[1440px] mx-auto py-8 md:py-12 px-4 md:px-12 flex-grow flex flex-col gap-8">
+    <!-- Page Title -->
+    <h1 class="text-[#111827] text-2xl md:text-3xl font-bold tracking-tight">
+      Dự án nổi bật quanh bạn
+    </h1>
+
+    <!-- Projects Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      
+      <!-- Card 1 -->
+      <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 overflow-hidden flex flex-col cursor-pointer group">
+        <div class="w-full h-[180px] bg-[#E5E7EB] overflow-hidden">
+          <img src="https://placehold.co/600x400/E5E7EB/9CA3AF?text=LocalVest" alt="Trạm tái chế nhựa khu phố 5" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+        </div>
+        <div class="p-4 flex flex-col gap-3 flex-grow justify-between">
+          <h3 class="text-[#111827] text-base font-semibold leading-snug group-hover:text-brand transition-colors">
+            Trạm tái chế nhựa khu phố 5
+          </h3>
+          <div class="flex flex-col gap-2">
+            <div class="w-full h-1.5 bg-[#E5E7EB] rounded-full overflow-hidden">
+              <div class="h-full bg-[#10B981] rounded-full" style="width: 60%"></div>
+            </div>
+            <div class="flex items-center justify-between text-xs sm:text-sm">
+              <span class="text-[#111827] font-semibold">60%</span>
+              <span class="text-[#6B7280]">Mục tiêu: 10.000.000 VNĐ</span>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="card">
-      <img src="https://placehold.co/318x180" alt="Thư viện mini cho trẻ em">
-      <div class="card-body">
-        <div class="card-title">Thư viện mini cho trẻ em</div>
-        <div class="progress-track"><div class="progress-fill" style="width:78%"></div></div>
-        <div class="progress-meta">
-          <span class="progress-pct">78%</span>
-          <span class="progress-goal">Mục tiêu: 5.000.000 VNĐ</span>
+      <!-- Card 2 -->
+      <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 overflow-hidden flex flex-col cursor-pointer group">
+        <div class="w-full h-[180px] bg-[#E5E7EB] overflow-hidden">
+          <img src="https://placehold.co/600x400/E5E7EB/9CA3AF?text=LocalVest" alt="Vườn cộng đồng phường Tân Bình" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+        </div>
+        <div class="p-4 flex flex-col gap-3 flex-grow justify-between">
+          <h3 class="text-[#111827] text-base font-semibold leading-snug group-hover:text-brand transition-colors">
+            Vườn cộng đồng phường Tân Bình
+          </h3>
+          <div class="flex flex-col gap-2">
+            <div class="w-full h-1.5 bg-[#E5E7EB] rounded-full overflow-hidden">
+              <div class="h-full bg-[#10B981] rounded-full" style="width: 45%"></div>
+            </div>
+            <div class="flex items-center justify-between text-xs sm:text-sm">
+              <span class="text-[#111827] font-semibold">45%</span>
+              <span class="text-[#6B7280]">Mục tiêu: 25.000.000 VNĐ</span>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="card">
-      <img src="https://placehold.co/318x180" alt="Sửa cầu đường liên xã">
-      <div class="card-body">
-        <div class="card-title">Sửa cầu đường liên xã</div>
-        <div class="progress-track"><div class="progress-fill" style="width:30%"></div></div>
-        <div class="progress-meta">
-          <span class="progress-pct">30%</span>
-          <span class="progress-goal">Mục tiêu: 50.000.000 VNĐ</span>
+      <!-- Card 3 -->
+      <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 overflow-hidden flex flex-col cursor-pointer group">
+        <div class="w-full h-[180px] bg-[#E5E7EB] overflow-hidden">
+          <img src="https://placehold.co/600x400/E5E7EB/9CA3AF?text=LocalVest" alt="Thư viện mini cho trẻ em" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+        </div>
+        <div class="p-4 flex flex-col gap-3 flex-grow justify-between">
+          <h3 class="text-[#111827] text-base font-semibold leading-snug group-hover:text-brand transition-colors">
+            Thư viện mini cho trẻ em
+          </h3>
+          <div class="flex flex-col gap-2">
+            <div class="w-full h-1.5 bg-[#E5E7EB] rounded-full overflow-hidden">
+              <div class="h-full bg-[#10B981] rounded-full" style="width: 78%"></div>
+            </div>
+            <div class="flex items-center justify-between text-xs sm:text-sm">
+              <span class="text-[#111827] font-semibold">78%</span>
+              <span class="text-[#6B7280]">Mục tiêu: 5.000.000 VNĐ</span>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="card">
-      <img src="https://placehold.co/318x180" alt="Quỹ học bổng sinh viên nghèo">
-      <div class="card-body">
-        <div class="card-title">Quỹ học bổng sinh viên nghèo</div>
-        <div class="progress-track"><div class="progress-fill" style="width:69%"></div></div>
-        <div class="progress-meta">
-          <span class="progress-pct">69%</span>
-          <span class="progress-goal">Mục tiêu: 15.000.000 VNĐ</span>
+      <!-- Card 4 -->
+      <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 overflow-hidden flex flex-col cursor-pointer group">
+        <div class="w-full h-[180px] bg-[#E5E7EB] overflow-hidden">
+          <img src="https://placehold.co/600x400/E5E7EB/9CA3AF?text=LocalVest" alt="Sửa cầu đường liên xã" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+        </div>
+        <div class="p-4 flex flex-col gap-3 flex-grow justify-between">
+          <h3 class="text-[#111827] text-base font-semibold leading-snug group-hover:text-brand transition-colors">
+            Sửa cầu đường liên xã
+          </h3>
+          <div class="flex flex-col gap-2">
+            <div class="w-full h-1.5 bg-[#E5E7EB] rounded-full overflow-hidden">
+              <div class="h-full bg-[#10B981] rounded-full" style="width: 30%"></div>
+            </div>
+            <div class="flex items-center justify-between text-xs sm:text-sm">
+              <span class="text-[#111827] font-semibold">30%</span>
+              <span class="text-[#6B7280]">Mục tiêu: 50.000.000 VNĐ</span>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="card">
-      <img src="https://placehold.co/318x180" alt="Trồng cây xanh đường Nguyễn Huệ">
-      <div class="card-body">
-        <div class="card-title">Trồng cây xanh đường Nguyễn Huệ</div>
-        <div class="progress-track"><div class="progress-fill" style="width:54%"></div></div>
-        <div class="progress-meta">
-          <span class="progress-pct">54%</span>
-          <span class="progress-goal">Mục tiêu: 8.000.000 VNĐ</span>
+      <!-- Card 5 -->
+      <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 overflow-hidden flex flex-col cursor-pointer group">
+        <div class="w-full h-[180px] bg-[#E5E7EB] overflow-hidden">
+          <img src="https://placehold.co/600x400/E5E7EB/9CA3AF?text=LocalVest" alt="Quỹ học bổng sinh viên nghèo" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+        </div>
+        <div class="p-4 flex flex-col gap-3 flex-grow justify-between">
+          <h3 class="text-[#111827] text-base font-semibold leading-snug group-hover:text-brand transition-colors">
+            Quỹ học bổng sinh viên nghèo
+          </h3>
+          <div class="flex flex-col gap-2">
+            <div class="w-full h-1.5 bg-[#E5E7EB] rounded-full overflow-hidden">
+              <div class="h-full bg-[#10B981] rounded-full" style="width: 69%"></div>
+            </div>
+            <div class="flex items-center justify-between text-xs sm:text-sm">
+              <span class="text-[#111827] font-semibold">69%</span>
+              <span class="text-[#6B7280]">Mục tiêu: 15.000.000 VNĐ</span>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="card">
-      <img src="https://placehold.co/318x180" alt="Lắp đèn năng lượng mặt trời">
-      <div class="card-body">
-        <div class="card-title">Lắp đèn năng lượng mặt trời</div>
-        <div class="progress-track"><div class="progress-fill" style="width:48%"></div></div>
-        <div class="progress-meta">
-          <span class="progress-pct">48%</span>
-          <span class="progress-goal">Mục tiêu: 12.000.000 VNĐ</span>
+      <!-- Card 6 -->
+      <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 overflow-hidden flex flex-col cursor-pointer group">
+        <div class="w-full h-[180px] bg-[#E5E7EB] overflow-hidden">
+          <img src="https://placehold.co/600x400/E5E7EB/9CA3AF?text=LocalVest" alt="Trồng cây xanh đường Nguyễn Huệ" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+        </div>
+        <div class="p-4 flex flex-col gap-3 flex-grow justify-between">
+          <h3 class="text-[#111827] text-base font-semibold leading-snug group-hover:text-brand transition-colors">
+            Trồng cây xanh đường Nguyễn Huệ
+          </h3>
+          <div class="flex flex-col gap-2">
+            <div class="w-full h-1.5 bg-[#E5E7EB] rounded-full overflow-hidden">
+              <div class="h-full bg-[#10B981] rounded-full" style="width: 54%"></div>
+            </div>
+            <div class="flex items-center justify-between text-xs sm:text-sm">
+              <span class="text-[#111827] font-semibold">54%</span>
+              <span class="text-[#6B7280]">Mục tiêu: 8.000.000 VNĐ</span>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="card">
-      <img src="https://placehold.co/318x180" alt="Xây nhà tình thương">
-      <div class="card-body">
-        <div class="card-title">Xây nhà tình thương</div>
-        <div class="progress-track"><div class="progress-fill" style="width:24%"></div></div>
-        <div class="progress-meta">
-          <span class="progress-pct">24%</span>
-          <span class="progress-goal">Mục tiêu: 40.000.000 VNĐ</span>
+      <!-- Card 7 -->
+      <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 overflow-hidden flex flex-col cursor-pointer group">
+        <div class="w-full h-[180px] bg-[#E5E7EB] overflow-hidden">
+          <img src="https://placehold.co/600x400/E5E7EB/9CA3AF?text=LocalVest" alt="Lắp đèn năng lượng mặt trời" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+        </div>
+        <div class="p-4 flex flex-col gap-3 flex-grow justify-between">
+          <h3 class="text-[#111827] text-base font-semibold leading-snug group-hover:text-brand transition-colors">
+            Lắp đèn năng lượng mặt trời
+          </h3>
+          <div class="flex flex-col gap-2">
+            <div class="w-full h-1.5 bg-[#E5E7EB] rounded-full overflow-hidden">
+              <div class="h-full bg-[#10B981] rounded-full" style="width: 48%"></div>
+            </div>
+            <div class="flex items-center justify-between text-xs sm:text-sm">
+              <span class="text-[#111827] font-semibold">48%</span>
+              <span class="text-[#6B7280]">Mục tiêu: 12.000.000 VNĐ</span>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <div class="location-banner">
-    <span>Vui lòng bật định vị để xem các dự án quanh bạn</span>
-    <button>Bật định vị</button>
-  </div>
-</main>
+      <!-- Card 8 -->
+      <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 overflow-hidden flex flex-col cursor-pointer group">
+        <div class="w-full h-[180px] bg-[#E5E7EB] overflow-hidden">
+          <img src="https://placehold.co/600x400/E5E7EB/9CA3AF?text=LocalVest" alt="Xây nhà tình thương" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+        </div>
+        <div class="p-4 flex flex-col gap-3 flex-grow justify-between">
+          <h3 class="text-[#111827] text-base font-semibold leading-snug group-hover:text-brand transition-colors">
+            Xây nhà tình thương
+          </h3>
+          <div class="flex flex-col gap-2">
+            <div class="w-full h-1.5 bg-[#E5E7EB] rounded-full overflow-hidden">
+              <div class="h-full bg-[#10B981] rounded-full" style="width: 24%"></div>
+            </div>
+            <div class="flex items-center justify-between text-xs sm:text-sm">
+              <span class="text-[#111827] font-semibold">24%</span>
+              <span class="text-[#6B7280]">Mục tiêu: 40.000.000 VNĐ</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Sticky Location Banner -->
+  <aside class="sticky bottom-6 z-30 px-4 w-full max-w-[1344px] mx-auto my-4">
+    <div class="bg-[#D97706] text-white p-4 rounded-xl shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 transition-all">
+      <div class="flex items-center gap-2 text-center sm:text-left">
+        <svg class="w-5 h-5 text-white shrink-0 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        <span class="text-white text-sm sm:text-base font-bold">
+          Vui lòng bật định vị để xem các dự án quanh bạn
+        </span>
+      </div>
+      <button class="px-5 py-2 bg-[#111827] hover:bg-[#1F2937] text-white text-xs sm:text-sm font-semibold rounded-lg shrink-0 transition-colors cursor-pointer shadow-sm">
+        Bật định vị
+      </button>
+    </div>
+  </aside>
 
 </body>
 </html>
