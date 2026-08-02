@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng ký dự án - Bước 3: Tài chính - LocalVest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              DEFAULT: '#1E3A5F',
+              dark: '#162C48',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-[#F9FAFB] font-sans text-[#111827] min-h-screen flex flex-col justify-between antialiased">
+
+  <!-- Header Navigation -->
+  <header class="w-full h-16 px-4 md:px-12 bg-white border-b border-[#E5E7EB] flex justify-between items-center sticky top-0 z-50">
+    <!-- Logo -->
+    <div class="flex items-center gap-2">
+      <div class="w-7 h-7 bg-brand rounded-md flex items-center justify-center">
+        <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 21h18"/>
+          <path d="M3 10h18"/>
+          <path d="M5 6l7-3 7 3"/>
+          <path d="M4 10v11"/>
+          <path d="M20 10v11"/>
+          <path d="M8 14v3"/>
+          <path d="M12 14v3"/>
+          <path d="M16 14v3"/>
+        </svg>
+      </div>
+      <span class="text-brand text-lg font-extrabold tracking-tight">LocalVest</span>
+    </div>
+
+    <!-- Nav Items -->
+    <nav class="h-full hidden md:flex items-center gap-8">
+      <a href="#" class="h-full flex items-center text-[#374151] text-sm font-medium hover:text-brand transition-colors">Khám phá</a>
+      <a href="#" class="h-full flex items-center text-brand text-sm font-semibold border-b-2 border-brand">Đăng ký dự án</a>
+      <a href="#" class="h-full flex items-center text-[#374151] text-sm font-medium hover:text-brand transition-colors">Dashboard</a>
+    </nav>
+
+    <!-- User Profile -->
+    <div class="flex items-center gap-3">
+      <span class="text-[#111827] text-sm font-semibold hidden sm:inline">Nguyễn Văn A</span>
+      <div class="w-9 h-8 bg-[#D1D5DB] rounded-full flex items-center justify-center">
+        <span class="text-[#4D5461] text-xs font-bold">NA</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Form -->
+  <main class="w-full max-w-[1440px] mx-auto py-8 md:py-12 px-4 flex justify-center items-center flex-grow">
+    <div class="w-full max-w-[800px] p-6 sm:p-10 bg-white rounded-xl border border-[#E5E7EB] shadow-sm flex flex-col gap-8">
+      
+      <!-- Stepper Header -->
+      <div class="flex flex-col gap-6">
+        <div class="flex items-center justify-between gap-2 sm:gap-4">
+          <!-- Step 1 (Completed) -->
+          <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div class="w-8 h-8 bg-[#111827] text-[#E5E7EB] rounded-full flex items-center justify-center text-sm font-bold">
+              1
+            </div>
+            <span class="text-[#9CA3AF] text-sm sm:text-base font-medium">Thông tin</span>
+          </div>
+          
+          <div class="flex-1 h-[2px] bg-[#111827]"></div>
+
+          <!-- Step 2 (Completed) -->
+          <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div class="w-8 h-8 bg-[#111827] text-[#E5E7EB] rounded-full flex items-center justify-center text-sm font-bold">
+              2
+            </div>
+            <span class="text-[#9CA3AF] text-sm sm:text-base font-medium">Tài liệu</span>
+          </div>
+
+          <div class="flex-1 h-[2px] bg-[#111827]"></div>
+
+          <!-- Step 3 (Active) -->
+          <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div class="w-8 h-8 bg-[#111827] text-white rounded-full flex items-center justify-center text-sm font-bold">
+              3
+            </div>
+            <span class="text-brand text-sm sm:text-base font-semibold">Tài chính</span>
+          </div>
+        </div>
+
+        <div class="w-full h-[1px] bg-[#E5E7EB]"></div>
+      </div>
+
+      <!-- Form Content -->
+      <form class="flex flex-col gap-6" onsubmit="event.preventDefault();">
+        <!-- Title & Subtitle -->
+        <div class="flex flex-col gap-1">
+          <h1 class="text-[#111827] text-xl sm:text-2xl font-bold">Đăng ký dự án gọi vốn</h1>
+          <p class="text-[#9CA3AF] text-sm font-normal">
+            Vui lòng cung cấp đầy đủ thông tin cơ bản về dự án của bạn để chuyển sang bước tiếp theo.
+          </p>
+        </div>
+
+        <!-- Target Funding Amount -->
+        <div class="flex flex-col gap-2">
+          <label class="text-[#374151] text-sm font-semibold">
+            Số tiền mục tiêu <span class="text-[#EF4444]">*</span>
+          </label>
+          <input 
+            type="text" 
+            placeholder="vd: 100.000.000 VNĐ" 
+            class="w-full h-11 px-4 bg-white rounded-xl border border-[#E5E7EB] text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all"
+          />
+        </div>
+
+        <!-- Milestone 1 -->
+        <div class="p-4 sm:p-5 bg-[#F3F4F6] rounded-xl flex flex-col gap-4">
+          <div class="flex items-center justify-between">
+            <span class="text-[#111827] text-sm font-bold">Mốc giải ngân 1</span>
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-[#374151] text-sm font-semibold">
+              Tên mốc <span class="text-[#EF4444]">*</span>
+            </label>
+            <input 
+              type="text" 
+              placeholder="Nhập tên mốc" 
+              class="w-full h-11 px-4 bg-white rounded-xl border border-[#E5E7EB] text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all"
+            />
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-[#374151] text-sm font-semibold">
+              Số tiền <span class="text-[#EF4444]">*</span>
+            </label>
+            <input 
+              type="text" 
+              placeholder="Nhập số tiền" 
+              class="w-full h-11 px-4 bg-white rounded-xl border border-[#E5E7EB] text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all"
+            />
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-[#374151] text-sm font-semibold">
+              Mô tả ngắn <span class="text-[#EF4444]">*</span>
+            </label>
+            <input 
+              type="text" 
+              placeholder="Mô tả chi tiết công việc trong mốc này" 
+              class="w-full h-11 px-4 bg-white rounded-xl border border-[#E5E7EB] text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all"
+            />
+          </div>
+        </div>
+
+        <!-- Milestone 2 -->
+        <div class="p-4 sm:p-5 bg-[#F3F4F6] rounded-xl flex flex-col gap-4">
+          <div class="flex items-center justify-between">
+            <span class="text-[#111827] text-sm font-bold">Mốc giải ngân 2</span>
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-[#374151] text-sm font-semibold">
+              Tên mốc <span class="text-[#EF4444]">*</span>
+            </label>
+            <input 
+              type="text" 
+              placeholder="Nhập tên mốc" 
+              class="w-full h-11 px-4 bg-white rounded-xl border border-[#E5E7EB] text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all"
+            />
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-[#374151] text-sm font-semibold">
+              Số tiền <span class="text-[#EF4444]">*</span>
+            </label>
+            <input 
+              type="text" 
+              placeholder="Nhập số tiền" 
+              class="w-full h-11 px-4 bg-white rounded-xl border border-[#E5E7EB] text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all"
+            />
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-[#374151] text-sm font-semibold">
+              Mô tả ngắn <span class="text-[#EF4444]">*</span>
+            </label>
+            <input 
+              type="text" 
+              placeholder="Mô tả chi tiết công việc trong mốc này" 
+              class="w-full h-11 px-4 bg-white rounded-xl border border-[#E5E7EB] text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all"
+            />
+          </div>
+        </div>
+
+        <!-- Milestone 3 -->
+        <div class="p-4 sm:p-5 bg-[#F3F4F6] rounded-xl flex flex-col gap-4">
+          <div class="flex items-center justify-between">
+            <span class="text-[#111827] text-sm font-bold">Mốc giải ngân 3</span>
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-[#374151] text-sm font-semibold">
+              Tên mốc <span class="text-[#EF4444]">*</span>
+            </label>
+            <input 
+              type="text" 
+              placeholder="Nhập tên mốc" 
+              class="w-full h-11 px-4 bg-white rounded-xl border border-[#E5E7EB] text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all"
+            />
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-[#374151] text-sm font-semibold">
+              Số tiền <span class="text-[#EF4444]">*</span>
+            </label>
+            <input 
+              type="text" 
+              placeholder="Nhập số tiền" 
+              class="w-full h-11 px-4 bg-white rounded-xl border border-[#E5E7EB] text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all"
+            />
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-[#374151] text-sm font-semibold">
+              Mô tả ngắn <span class="text-[#EF4444]">*</span>
+            </label>
+            <input 
+              type="text" 
+              placeholder="Mô tả chi tiết công việc trong mốc này" 
+              class="w-full h-11 px-4 bg-white rounded-xl border border-[#E5E7EB] text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all"
+            />
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex flex-col gap-6 mt-4">
+          <div class="w-full h-[1px] bg-[#E5E7EB]"></div>
+          <div class="flex items-center justify-between">
+            <button 
+              type="button" 
+              class="px-8 py-3 bg-brand hover:bg-brand-dark text-white text-sm font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
+            >
+              Trở về
+            </button>
+            <button 
+              type="submit" 
+              class="px-8 py-3 bg-brand hover:bg-brand-dark text-white text-sm font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
+            >
+              Gửi dự án
+            </button>
+          </div>
+        </div>
+      </form>
+
+    </div>
+  </main>
+
+</body>
+</html>
