@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Khám phá dự án - LocalVest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="page-shell">
+  <div id="navbar-root"></div>
+
+  <main class="page-main">
+    <div class="container">
+      <h1 class="page-title">Khám phá dự án quanh bạn</h1>
+      <p class="page-subtitle">Các dự án cộng đồng trong bán kính 3-5km, sắp xếp theo khoảng cách gần nhất.</p>
+
+      <div id="gps-banner"></div>
+
+      <div class="flex items-center justify-between mb-16" style="flex-wrap: wrap; gap: 12px;">
+        <div class="flex gap-8" id="filter-bar">
+          <button class="btn btn-outline btn-sm filter-btn active" data-filter="all">Tất cả</button>
+          <button class="btn btn-outline btn-sm filter-btn" data-filter="Giáo dục">Giáo dục</button>
+          <button class="btn btn-outline btn-sm filter-btn" data-filter="Môi trường">Môi trường</button>
+          <button class="btn btn-outline btn-sm filter-btn" data-filter="Cộng đồng">Cộng đồng</button>
+          <button class="btn btn-outline btn-sm filter-btn" data-filter="Sức khoẻ">Sức khoẻ</button>
+        </div>
+        <button class="btn btn-outline btn-sm" id="refresh-btn">🔄 Làm mới</button>
+      </div>
+
+      <div class="project-grid" id="project-grid"></div>
+    </div>
+  </main>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+  LV.requireLogin();
+  LV.renderNavbar('home');
+
+  let currentFilter = 'all';
+  let locationGranted = false;
+
+  function renderBanner(state) {
+    const el = document.getElementById('gps-banner');
+    if (state === 'loading') {
+      el.innerHTML = `<div class="banner banner-info">📍 Đang xác định vị trí của bạn...</div>`;
+    } else if (state === 'granted') {
+      el.innerHTML = `<div class="banner banner-success">📍 Đã xác định vị trí — hiển thị dự án trong bán kính 5km quanh bạn.</div>`;
+    } else {
+      el.innerHTML = `<div class="banner banner-warning">📍 Vui lòng bật định vị để xem các dự án quanh bạn. Đang hiển thị danh sách mặc định.</div>`;
+    }
+  }
+
+  function statusBadge(p) {
+    const pct = Math.round((p.raised / p.target) * 100);
+    if (p.fraudFlag) return `<span class="badge badge-danger">⚠ Đang xác minh</span>`;
+    if (pct >= 100) return `<span class="badge badge-success">Đã đạt mục tiêu</span>`;
+    return `<span class="badge badge-primary">${p.category}</span>`;
+  }
+
+  function renderGrid() {
+    const grid = document.getElementById('project-grid');
+    let projects = LV.getProjects().filter((p) => p.status === 'active');
+    if (currentFilter !== 'all') projects = projects.filter((p) => p.category === currentFilter);
+    projects.sort((a, b) => (a.distanceKm || 99) - (b.distanceKm || 99));
+
+    if (!projects.length) {
+      grid.innerHTML = `<div class="card card-pad text-center text-muted">Chưa có dự án nào phù hợp bộ lọc.</div>`;
+      return;
+    }
+
+    grid.innerHTML = projects.map((p) => {
+      const pct = Math.min(100, Math.round((p.raised / p.target) * 100));
+      const dist = locationGranted ? `Cách bạn ${p.distanceKm.toFixed(1)}km` : '--';
+      return `
+      <a class="project-card" href="project.html?id=${p.id}">
+        <div class="project-cover ${p.cover}">${p.icon}</div>
+        <div class="project-body">
+          <div class="flex justify-between items-center">
+            ${statusBadge(p)}
+            <span class="text-sm text-muted">📍 ${dist}</span>
+          </div>
+          <div class="project-name">${p.name}</div>
+          <div class="text-sm text-muted">${p.location}</div>
+          <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+          <div class="project-progress-row">
+            <span class="project-amount">${LV.formatVND(p.raised)}</span>
+            <span>${pct}% / ${LV.formatVND(p.target)}</span>
+          </div>
+        </div>
+      </a>`;
+    }).join('');
+  }
+
+  document.querySelectorAll('.filter-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      btn.style.background = 'var(--color-primary)'; btn.style.color = '#fff'; btn.style.borderColor = 'var(--color-primary)';
+      document.querySelectorAll('.filter-btn').forEach((b) => { if (b !== btn) { b.style.background = ''; b.style.color=''; b.style.borderColor=''; } });
+      currentFilter = btn.dataset.filter;
+      renderGrid();
+    });
+  });
+
+  document.getElementById('refresh-btn').addEventListener('click', () => {
+    LV.toast('Đã làm mới danh sách dự án', 'success');
+    renderGrid();
+  });
+
+  // Pull-to-refresh (chạm kéo xuống ở đầu trang trên thiết bị cảm ứng)
+  let touchStartY = null;
+  window.addEventListener('touchstart', (e) => { if (window.scrollY === 0) touchStartY = e.touches[0].clientY; });
+  window.addEventListener('touchend', (e) => {
+    if (touchStartY !== null && e.changedTouches[0].clientY - touchStartY > 80) {
+      LV.toast('Đã làm mới danh sách dự án', 'success');
+      renderGrid();
+    }
+    touchStartY = null;
+  });
+
+  renderBanner('loading');
+  if ('geolocation' in navigator) {
+    navigator.geolocation.getCurrentPosition(
+      () => { locationGranted = true; renderBanner('granted'); renderGrid(); },
+      () => { locationGranted = false; renderBanner('denied'); renderGrid(); },
+      { timeout: 5000 }
+    );
+  } else {
+    renderBanner('denied');
+  }
+  renderGrid();
+</script>
+</body>
+</html>

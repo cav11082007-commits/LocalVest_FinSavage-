@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chi tiết dự án - LocalVest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .detail-layout { display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start; }
+    @media (max-width: 860px) { .detail-layout { grid-template-columns: 1fr; } }
+    .detail-cover { height: 220px; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; font-size: 64px; color: #fff; margin-bottom: 20px; }
+    .donate-card { position: sticky; top: 84px; }
+    .creator-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: #F8FAFC; }
+  </style>
+</head>
+<body>
+<div class="page-shell">
+  <div id="navbar-root"></div>
+  <main class="page-main">
+    <div class="container" id="project-root">Đang tải dự án...</div>
+  </main>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+  LV.requireLogin();
+  LV.renderNavbar('home');
+
+  const params = new URLSearchParams(window.location.search);
+  const project = LV.getProject(params.get('id'));
+  const root = document.getElementById('project-root');
+
+  if (!project) {
+    root.innerHTML = `<div class="card card-pad text-center">
+      <p class="text-muted">Không tìm thấy dự án này.</p>
+      <a class="btn btn-primary mt-16" href="home.html">Về trang khám phá</a>
+    </div>`;
+  } else {
+    const pct = Math.min(100, Math.round((project.raised / project.target) * 100));
+    const backers = LV.getLedger(project.id).filter((e) => e.type === 'in').length;
+
+    const milestoneHtml = project.milestones.map((m, i) => {
+      const statusMap = {
+        released: { cls: 'done', label: 'Đã giải ngân', dot: '✓' },
+        pending: { cls: 'active', label: 'Chờ giải ngân', dot: i + 1 },
+        locked: { cls: '', label: 'Đang khoá', dot: i + 1 },
+      };
+      const s = statusMap[m.status] || statusMap.locked;
+      return `
+        <div class="timeline-item ${s.cls}" onclick="this.classList.toggle('open')">
+          <div class="timeline-dot">${s.dot}</div>
+          <div class="timeline-card">
+            <div class="timeline-head">
+              <div class="timeline-title">${m.name}</div>
+              <span class="badge ${m.status === 'released' ? 'badge-success' : m.status === 'pending' ? 'badge-warning' : 'badge-neutral'}">${s.label}</span>
+            </div>
+            <div class="timeline-amount">${LV.formatVND(m.amount)}</div>
+            <div class="timeline-detail">${m.desc}</div>
+          </div>
+        </div>`;
+    }).join('');
+
+    root.innerHTML = `
+      <a href="home.html" class="text-sm text-muted">← Quay lại khám phá</a>
+      <div class="detail-cover ${project.cover}" style="margin-top:16px;">${project.icon}</div>
+
+      <div class="detail-layout">
+        <div>
+          ${project.fraudFlag ? `<div class="banner banner-danger">⚠ Dự án đang được hệ thống AI đánh dấu nghi vấn (${project.fraudFlag.score}%): ${project.fraudFlag.reason}. Đội ngũ LocalVest đang xác minh thêm.</div>` : ''}
+
+          <div class="flex items-center gap-8 mb-16" style="flex-wrap:wrap;">
+            <span class="badge badge-primary">${project.category}</span>
+            <span class="text-sm text-muted">📍 ${project.location} · Cách bạn ${project.distanceKm.toFixed(1)}km</span>
+          </div>
+          <h1 class="page-title" style="margin-bottom:16px;">${project.name}</h1>
+
+          <div class="creator-row mb-16">
+            <div class="nav-avatar">${LV.initials(project.creatorName)}</div>
+            <div style="flex:1;">
+              <div style="font-weight:600; font-size:14px;">${project.creatorName}</div>
+              <div class="text-sm text-muted">Người sáng lập dự án</div>
+            </div>
+            ${project.creatorVerified
+              ? `<span class="badge badge-success">✓ Đã xác minh CCCD</span>`
+              : `<span class="badge badge-warning">Đang chờ xác minh</span>`}
+          </div>
+
+          <div class="card card-pad mb-16">
+            <div class="section-title">Giới thiệu dự án</div>
+            <p class="text-muted" style="line-height:1.7; margin:0;">${project.description}</p>
+          </div>
+
+          <div class="card card-pad">
+            <div class="section-title">Lộ trình giải ngân theo mốc (Escrow)</div>
+            <p class="text-sm text-muted" style="margin-top:-6px;">Vốn được giữ trong tài khoản escrow và chỉ giải ngân từng phần khi dự án đạt các mốc minh bạch bên dưới. Nhấn vào từng mốc để xem chi tiết điều kiện.</p>
+            <div class="timeline mt-16">${milestoneHtml}</div>
+          </div>
+        </div>
+
+        <div class="donate-card card card-pad">
+          <div class="project-amount" style="font-size:22px;">${LV.formatVND(project.raised)}</div>
+          <div class="text-sm text-muted mb-16">đã gọi được trên mục tiêu ${LV.formatVND(project.target)}</div>
+          <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+          <div class="flex justify-between text-sm text-muted mt-8 mb-16">
+            <span>${pct}% hoàn thành</span>
+            <span>${backers} lượt đóng góp</span>
+          </div>
+          <a class="btn btn-primary btn-block" href="checkout.html?id=${project.id}">Đóng góp ngay</a>
+          <a class="btn btn-outline btn-block mt-8" href="dashboard.html?id=${project.id}">Xem dòng tiền minh bạch</a>
+        </div>
+      </div>
+    `;
+  }
+</script>
+</body>
+</html>
