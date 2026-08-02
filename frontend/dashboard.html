@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dòng tiền minh bạch - LocalVest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+    @media (max-width: 720px) { .stat-grid { grid-template-columns: 1fr; } }
+    .stat-value { font-size: 22px; font-weight: 800; }
+    .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-success); display: inline-block; animation: pulse 1.4s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+    tr.new-row { animation: flash 1.2s ease; }
+    @keyframes flash { from { background: var(--color-primary-tint-10); } to { background: transparent; } }
+  </style>
+</head>
+<body>
+<div class="page-shell">
+  <div id="navbar-root"></div>
+  <main class="page-main">
+    <div class="container">
+      <div class="flex justify-between items-center mb-16" style="flex-wrap: wrap; gap:12px;">
+        <div>
+          <h1 class="page-title" style="margin-bottom:4px;">Dòng tiền minh bạch</h1>
+          <p class="page-subtitle" style="margin-bottom:0;"><span class="live-dot"></span> Cập nhật thời gian thực từ tầng Gold (Medallion Lakehouse)</p>
+        </div>
+        <select class="input" id="project-select" style="width:auto; min-width:260px;"></select>
+      </div>
+
+      <div id="escrow-banner"></div>
+
+      <div class="stat-grid">
+        <div class="card card-pad">
+          <div class="text-sm text-muted">Tổng đã gọi vốn</div>
+          <div class="stat-value" id="stat-raised" style="color:var(--color-primary);">--</div>
+        </div>
+        <div class="card card-pad">
+          <div class="text-sm text-muted">Đã giải ngân</div>
+          <div class="stat-value" id="stat-released" style="color:var(--color-danger);">--</div>
+        </div>
+        <div class="card card-pad">
+          <div class="text-sm text-muted">Số dư trong escrow</div>
+          <div class="stat-value" id="stat-balance" style="color:var(--color-success);">--</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Thời gian</th><th>Nội dung</th><th>Số tiền</th></tr>
+          </thead>
+          <tbody id="ledger-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+  LV.requireLogin();
+  LV.renderNavbar('dashboard');
+
+  const params = new URLSearchParams(window.location.search);
+  const projects = LV.getProjects();
+  const select = document.getElementById('project-select');
+  select.innerHTML = projects.map((p) => `<option value="${p.id}">${p.name}</option>`).join('');
+
+  let currentId = params.get('id') && projects.some((p) => p.id === params.get('id'))
+    ? params.get('id') : (projects[0] && projects[0].id);
+  select.value = currentId;
+
+  let simTimer = null;
+
+  function escrowStatus(p) {
+    const released = p.milestones.filter((m) => m.status === 'released').length;
+    if (released === 0) return { label: '[ĐANG KHOÁ]', cls: 'banner-warning' };
+    if (released < p.milestones.length) return { label: '[ĐÃ GIẢI NGÂN MỘT PHẦN]', cls: 'banner-info' };
+    return { label: '[ĐÃ GIẢI NGÂN TOÀN BỘ]', cls: 'banner-success' };
+  }
+
+  function renderRow(entry, isNew) {
+    const sign = entry.type === 'in' ? '+' : '−';
+    const cls = entry.type === 'in' ? 'row-in' : 'row-out';
+    const color = entry.type === 'in' ? 'var(--color-success)' : 'var(--color-danger)';
+    return `<tr class="${cls}${isNew ? ' new-row' : ''}">
+      <td>${LV.formatDate(entry.time)}</td>
+      <td>${entry.desc}</td>
+      <td style="color:${color}; font-weight:700;">${sign}${LV.formatVND(entry.amount)}</td>
+    </tr>`;
+  }
+
+  function renderAll() {
+    const p = LV.getProject(currentId);
+    if (!p) return;
+    const status = escrowStatus(p);
+    document.getElementById('escrow-banner').innerHTML =
+      `<div class="banner ${status.cls}">🔒 Trạng thái tài khoản escrow: <strong style="margin-left:4px;">${status.label}</strong> — dự án "${p.name}"</div>`;
+
+    const ledger = LV.getLedger(p.id).slice().sort((a, b) => new Date(b.time) - new Date(a.time));
+    const totalIn = ledger.filter((e) => e.type === 'in').reduce((s, e) => s + e.amount, 0);
+    const totalOut = ledger.filter((e) => e.type === 'out').reduce((s, e) => s + e.amount, 0);
+    document.getElementById('stat-raised').textContent = LV.formatVND(totalIn);
+    document.getElementById('stat-released').textContent = LV.formatVND(totalOut);
+    document.getElementById('stat-balance').textContent = LV.formatVND(totalIn - totalOut);
+
+    document.getElementById('ledger-body').innerHTML = ledger.length
+      ? ledger.map((e) => renderRow(e)).join('')
+      : `<tr><td colspan="3" class="text-center text-muted">Chưa có giao dịch nào.</td></tr>`;
+  }
+
+  function startSimulation() {
+    if (simTimer) clearInterval(simTimer);
+    simTimer = setInterval(() => {
+      const p = LV.getProject(currentId);
+      if (!p || p.raised >= p.target) return;
+      const amt = [50000, 100000, 200000, 300000][Math.floor(Math.random() * 4)];
+      const entry = { time: new Date().toISOString(), amount: amt, type: 'in', desc: `+${LV.formatVND(amt)} từ ${LV.randomName()}` };
+      LV.pushLedger(p.id, entry);
+      const projectsAll = LV.getProjects();
+      const target = projectsAll.find((x) => x.id === p.id);
+      target.raised += amt;
+      LV.saveProjects(projectsAll);
+
+      const tbody = document.getElementById('ledger-body');
+      tbody.insertAdjacentHTML('afterbegin', renderRow(entry, true));
+      const totalIn = LV.getLedger(p.id).filter((e) => e.type === 'in').reduce((s, e) => s + e.amount, 0);
+      const totalOut = LV.getLedger(p.id).filter((e) => e.type === 'out').reduce((s, e) => s + e.amount, 0);
+      document.getElementById('stat-raised').textContent = LV.formatVND(totalIn);
+      document.getElementById('stat-balance').textContent = LV.formatVND(totalIn - totalOut);
+    }, 6000);
+  }
+
+  select.addEventListener('change', () => {
+    currentId = select.value;
+    renderAll();
+  });
+
+  renderAll();
+  startSimulation();
+</script>
+</body>
+</html>
