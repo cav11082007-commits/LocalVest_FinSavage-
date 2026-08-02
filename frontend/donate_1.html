@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LocalVest - Đóng góp ủng hộ dự án</title>
+  <style>
+    /* Reset & Fonts */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #F8FAFC;
+      color: #1E293B;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Page Layout Container */
+    .page-container {
+      width: 100%;
+      min-height: 1024px;
+      background: #F8FAFC;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Top Navigation Bar */
+    .navbar {
+      align-self: stretch;
+      height: 72px;
+      padding-left: 48px;
+      padding-right: 48px;
+      background: #2F5496;
+      border-bottom: 1px #1E3A8A solid;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .nav-brand {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      background: white;
+      border-radius: 8px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .brand-title {
+      color: white;
+      font-size: 20px;
+      font-weight: 800;
+    }
+    .nav-links {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 32px;
+    }
+    .nav-link-active {
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .nav-link {
+      color: #D1D5DB;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .nav-user {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 12px;
+    }
+    .user-name {
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .user-avatar {
+      width: 36px;
+      height: 36px;
+      background: #93C5FD;
+      border-radius: 18px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .avatar-text {
+      color: #2F5496;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    /* Main Content Area */
+    .main-content {
+      align-self: stretch;
+      flex: 1 1 0;
+      padding: 64px 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Contribution Card */
+    .card {
+      width: 540px;
+      padding: 40px;
+      background: white;
+      box-shadow: 0px 8px 24px rgba(15, 23, 42, 0.03);
+      border-radius: 16px;
+      outline: 1px #E2E8F0 solid;
+      outline-offset: -1px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: flex-start;
+      gap: 32px;
+    }
+
+    /* Header Group */
+    .header-group {
+      align-self: stretch;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .badge-tag {
+      padding: 6px 12px;
+      background: rgba(47, 84, 150, 0.07);
+      border-radius: 6px;
+      display: inline-flex;
+    }
+    .badge-tag-text {
+      color: #2F5496;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .card-title {
+      align-self: stretch;
+      color: #1E293B;
+      font-size: 24px;
+      font-weight: 800;
+      line-height: 32px;
+    }
+    .card-subtitle {
+      align-self: stretch;
+      color: #64748B;
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 20px;
+    }
+
+    /* Form Section */
+    .form-section {
+      align-self: stretch;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .label-text {
+      align-self: stretch;
+      color: #1E293B;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    /* Quick Amount Selector */
+    .quick-amounts {
+      align-self: stretch;
+      display: flex;
+      justify-content: flex-start;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .amount-btn-active {
+      flex: 1 1 0;
+      padding: 12px 16px;
+      background: rgba(47, 84, 150, 0.07);
+      border-radius: 100px;
+      outline: 1.50px #2F5496 solid;
+      outline-offset: -1.50px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #2F5496;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .amount-btn {
+      flex: 1 1 0;
+      padding: 12px 16px;
+      background: white;
+      border-radius: 100px;
+      outline: 1px #E2E8F0 solid;
+      outline-offset: -1px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #1E293B;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    /* Custom Input Box */
+    .custom-input-box {
+      align-self: stretch;
+      padding: 16px 20px;
+      background: #F8FAFC;
+      border-radius: 12px;
+      outline: 1px #E2E8F0 solid;
+      outline-offset: -1px;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 12px;
+    }
+    .input-field {
+      flex: 1 1 0;
+      border: none;
+      background: transparent;
+      outline: none;
+      color: #1E293B;
+      font-size: 16px;
+      font-family: inherit;
+      font-weight: 400;
+    }
+    .input-field::placeholder {
+      color: #8C8C8C;
+    }
+    .currency-tag {
+      color: #64748B;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    /* Escrow Security Banner */
+    .security-banner {
+      align-self: stretch;
+      padding: 16px;
+      background: rgba(16, 185, 129, 0.08);
+      border-radius: 12px;
+      outline: 1px #10B981 solid;
+      outline-offset: -1px;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 12px;
+    }
+    .security-text {
+      flex: 1 1 0;
+      color: #10B981;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 18px;
+    }
+
+    /* Action Buttons */
+    .actions-group {
+      align-self: stretch;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .submit-btn {
+      align-self: stretch;
+      padding: 16px 0;
+      background: #2F5496;
+      border-radius: 12px;
+      border: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .back-link {
+      align-self: stretch;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 4px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .back-text-muted {
+      color: #64748B;
+      font-size: 14px;
+      font-weight: 400;
+    }
+    .back-text-primary {
+      color: #2F5496;
+      font-size: 14px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-container">
+    
+    <!-- Header/Navbar -->
+    <header class="navbar">
+      <div class="nav-brand">
+        <div class="brand-icon">
+          <svg width="20" height="18" viewBox="0 0 24 24" fill="none" stroke="#2F5496" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+        </div>
+        <div class="brand-title">LocalVest</div>
+      </div>
+      
+      <nav class="nav-links">
+        <div class="nav-link-active">Khám phá</div>
+        <div class="nav-link">Dự án của tôi</div>
+        <div class="nav-link">Thông báo</div>
+      </nav>
+
+      <div class="nav-user">
+        <div class="user-name">Nguyễn Văn A</div>
+        <div class="user-avatar">
+          <div class="avatar-text">NA</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="card">
+        
+        <!-- Header Info -->
+        <div class="header-group">
+          <div class="badge-tag">
+            <span class="badge-tag-text">ĐÓNG GÓP ỦNG HỘ</span>
+          </div>
+          <h1 class="card-title">Ủng hộ dự án: Xây dựng Thư viện Cộng đồng Phường Tân Định</h1>
+          <p class="card-subtitle">Khoản đóng góp của bạn được bảo mật và giám sát giải ngân thông qua lộ trình Escrow minh bạch từng giai đoạn.</p>
+        </div>
+
+        <!-- Quick Amount Selection -->
+        <div class="form-section">
+          <div class="label-text">Chọn nhanh số tiền</div>
+          <div class="quick-amounts">
+            <div class="amount-btn-active">100.000 VNĐ</div>
+            <div class="amount-btn">200.000 VNĐ</div>
+            <div class="amount-btn">500.000 VNĐ</div>
+          </div>
+        </div>
+
+        <!-- Custom Amount Input -->
+        <div class="form-section">
+          <div class="label-text">Hoặc nhập số tiền tùy chọn</div>
+          <div class="custom-input-box">
+            <input type="text" class="input-field" placeholder="Nhập số tiền khác" />
+            <div class="currency-tag">VNĐ</div>
+          </div>
+        </div>
+
+        <!-- Security Notice -->
+        <div class="security-banner">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          <div class="security-text">
+            Dự án được bảo chứng an toàn Escrow bởi đối tác tài chính của LocalVest.
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="actions-group">
+          <button class="submit-btn">Xác nhận đóng góp</button>
+          <a class="back-link" href="#">
+            <span class="back-text-muted">Quay lại</span>
+            <span class="back-text-primary">Chi tiết dự án</span>
+          </a>
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+</body>
+</html>

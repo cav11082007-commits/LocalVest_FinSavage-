@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng ký dự án - Bước 2: Tài liệu - LocalVest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              DEFAULT: '#1E3A5F',
+              dark: '#162C48',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-[#F9FAFB] font-sans text-[#111827] min-h-screen flex flex-col justify-between antialiased">
+
+  <!-- Header Navigation -->
+  <header class="w-full h-16 px-4 md:px-12 bg-white border-b border-[#E5E7EB] flex justify-between items-center sticky top-0 z-50">
+    <!-- Logo -->
+    <div class="flex items-center gap-2">
+      <div class="w-7 h-7 bg-brand rounded-md flex items-center justify-center">
+        <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 21h18"/>
+          <path d="M3 10h18"/>
+          <path d="M5 6l7-3 7 3"/>
+          <path d="M4 10v11"/>
+          <path d="M20 10v11"/>
+          <path d="M8 14v3"/>
+          <path d="M12 14v3"/>
+          <path d="M16 14v3"/>
+        </svg>
+      </div>
+      <span class="text-brand text-lg font-extrabold tracking-tight">LocalVest</span>
+    </div>
+
+    <!-- Nav Items -->
+    <nav class="h-full hidden md:flex items-center gap-8">
+      <a href="#" class="h-full flex items-center text-[#374151] text-sm font-medium hover:text-brand transition-colors">Khám phá</a>
+      <a href="#" class="h-full flex items-center text-brand text-sm font-semibold border-b-2 border-brand">Đăng ký dự án</a>
+      <a href="#" class="h-full flex items-center text-[#374151] text-sm font-medium hover:text-brand transition-colors">Dashboard</a>
+    </nav>
+
+    <!-- User Profile -->
+    <div class="flex items-center gap-3">
+      <span class="text-[#111827] text-sm font-semibold hidden sm:inline">Nguyễn Văn A</span>
+      <div class="w-9 h-8 bg-[#D1D5DB] rounded-full flex items-center justify-center">
+        <span class="text-[#4D5461] text-xs font-bold">NA</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Form -->
+  <main class="w-full max-w-[1440px] mx-auto py-8 md:py-12 px-4 flex justify-center items-center flex-grow">
+    <div class="w-full max-w-[1020px] p-6 sm:p-10 bg-white rounded-xl border border-[#E5E7EB] shadow-sm flex flex-col gap-8">
+      
+      <!-- Stepper Header -->
+      <div class="flex flex-col gap-6">
+        <div class="flex items-center justify-between gap-2 sm:gap-4">
+          <!-- Step 1 (Completed) -->
+          <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div class="w-8 h-8 bg-[#111827] text-white rounded-full flex items-center justify-center text-sm font-bold">
+              1
+            </div>
+            <span class="text-brand text-sm sm:text-base font-semibold">Thông tin</span>
+          </div>
+          
+          <div class="flex-1 h-[2px] bg-[#111827]"></div>
+
+          <!-- Step 2 (Active) -->
+          <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div class="w-8 h-8 bg-[#111827] text-white rounded-full flex items-center justify-center text-sm font-bold">
+              2
+            </div>
+            <span class="text-brand text-sm sm:text-base font-semibold">Tài liệu</span>
+          </div>
+
+          <div class="flex-1 h-[2px] bg-[#E5E7EB]"></div>
+
+          <!-- Step 3 (Pending) -->
+          <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div class="w-8 h-8 bg-[#E5E7EB] text-[#9CA3AF] rounded-full flex items-center justify-center text-sm font-semibold">
+              3
+            </div>
+            <span class="text-[#9CA3AF] text-sm sm:text-base font-medium">Tài chính</span>
+          </div>
+        </div>
+
+        <div class="w-full h-[1px] bg-[#E5E7EB]"></div>
+      </div>
+
+      <!-- Form Content -->
+      <form class="flex flex-col gap-8" onsubmit="event.preventDefault();">
+        <!-- Title & Subtitle -->
+        <div class="flex flex-col gap-1">
+          <h1 class="text-[#111827] text-xl sm:text-2xl font-bold">Đăng ký dự án gọi vốn</h1>
+          <p class="text-[#9CA3AF] text-sm font-normal">
+            Vui lòng cung cấp đầy đủ thông tin cơ bản về dự án của bạn để chuyển sang bước tiếp theo.
+          </p>
+        </div>
+
+        <!-- Section 1: Project Images Upload -->
+        <div class="flex flex-col gap-3">
+          <label class="text-[#374151] text-sm font-semibold">
+            Tải lên tài liệu chứng minh <span class="text-[#EF4444]">*</span>
+          </label>
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Upload Box 1 -->
+            <label class="group relative flex items-center p-4 bg-white rounded-xl border border-[#111827] hover:border-brand border-dashed md:border-solid cursor-pointer transition-all min-h-[110px]">
+              <input type="file" class="hidden" accept="image/*" />
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-[#F3F4F6] group-hover:bg-brand/10 flex items-center justify-center shrink-0 transition-colors">
+                  <svg class="w-5 h-5 text-[#374151] group-hover:text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                  </svg>
+                </div>
+                <span class="text-[#9CA3AF] text-xs sm:text-sm font-normal group-hover:text-[#374151] transition-colors">
+                  Vui lòng cung cấp hình ảnh minh chứng dự án
+                </span>
+              </div>
+            </label>
+
+            <!-- Upload Box 2 (Highlighted border option) -->
+            <label class="group relative flex items-center p-4 bg-white rounded-xl border border-brand hover:bg-brand/[0.02] border-dashed md:border-solid cursor-pointer transition-all min-h-[110px]">
+              <input type="file" class="hidden" accept="image/*" />
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-brand/10 flex items-center justify-center shrink-0 transition-colors">
+                  <svg class="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                  </svg>
+                </div>
+                <span class="text-[#9CA3AF] text-xs sm:text-sm font-normal group-hover:text-[#374151] transition-colors">
+                  Vui lòng cung cấp hình ảnh minh chứng dự án
+                </span>
+              </div>
+            </label>
+
+            <!-- Upload Box 3 -->
+            <label class="group relative flex items-center p-4 bg-white rounded-xl border border-[#111827] hover:border-brand border-dashed md:border-solid cursor-pointer transition-all min-h-[110px]">
+              <input type="file" class="hidden" accept="image/*" />
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-[#F3F4F6] group-hover:bg-brand/10 flex items-center justify-center shrink-0 transition-colors">
+                  <svg class="w-5 h-5 text-[#374151] group-hover:text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                  </svg>
+                </div>
+                <span class="text-[#9CA3AF] text-xs sm:text-sm font-normal group-hover:text-[#374151] transition-colors">
+                  Vui lòng cung cấp hình ảnh minh chứng dự án
+                </span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Section 2: KYC Identity Verification -->
+        <div class="flex flex-col gap-3">
+          <label class="text-[#111827] text-sm font-semibold">
+            Xác thực danh tính (KYC) <span class="text-[#DC2626]">*</span>
+          </label>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-[640px]">
+            <!-- CCCD Front -->
+            <label class="group relative flex items-center p-4 bg-white rounded-xl border border-[#111827] hover:border-brand cursor-pointer transition-all min-h-[114px]">
+              <input type="file" class="hidden" accept="image/*" />
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-[#F3F4F6] group-hover:bg-brand/10 flex items-center justify-center shrink-0 transition-colors">
+                  <svg class="w-5 h-5 text-[#374151] group-hover:text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="16" rx="2" stroke-linecap="round" stroke-linejoin="round"></rect>
+                    <circle cx="9" cy="10" r="2" stroke-linecap="round" stroke-linejoin="round"></circle>
+                    <line x1="15" y1="8" x2="17" y2="8" stroke-linecap="round" stroke-linejoin="round"></line>
+                    <line x1="15" y1="12" x2="17" y2="12" stroke-linecap="round" stroke-linejoin="round"></line>
+                    <path d="M7 16c0-1.5 1.5-3 3.5-3s3.5 1.5 3.5 3" stroke-linecap="round" stroke-linejoin="round"></path>
+                  </svg>
+                </div>
+                <span class="text-[#9CA3AF] text-xs sm:text-sm font-normal group-hover:text-[#374151] transition-colors">
+                  Tải lên mặt trước CCCD
+                </span>
+              </div>
+            </label>
+
+            <!-- CCCD Back -->
+            <label class="group relative flex items-center p-4 bg-white rounded-xl border border-[#111827] hover:border-brand cursor-pointer transition-all min-h-[114px]">
+              <input type="file" class="hidden" accept="image/*" />
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-[#F3F4F6] group-hover:bg-brand/10 flex items-center justify-center shrink-0 transition-colors">
+                  <svg class="w-5 h-5 text-[#374151] group-hover:text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="16" rx="2" stroke-linecap="round" stroke-linejoin="round"></rect>
+                    <line x1="7" y1="9" x2="17" y2="9" stroke-linecap="round" stroke-linejoin="round"></line>
+                    <line x1="7" y1="13" x2="13" y2="13" stroke-linecap="round" stroke-linejoin="round"></line>
+                    <line x1="7" y1="17" x2="10" y2="17" stroke-linecap="round" stroke-linejoin="round"></line>
+                  </svg>
+                </div>
+                <span class="text-[#9CA3AF] text-xs sm:text-sm font-normal group-hover:text-[#374151] transition-colors">
+                  Tải lên mặt sau CCCD
+                </span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Form Navigation Actions -->
+        <div class="flex flex-col gap-6 pt-4">
+          <div class="w-full h-[1px] bg-[#E5E7EB]"></div>
+          <div class="flex items-center justify-between">
+            <button 
+              type="button" 
+              class="px-8 py-3 bg-brand hover:bg-brand-dark text-white text-sm font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
+            >
+              Trở về
+            </button>
+            <button 
+              type="button" 
+              class="px-8 py-3 bg-brand hover:bg-brand-dark text-white text-sm font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
+            >
+              Tiếp theo
+            </button>
+          </div>
+        </div>
+      </form>
+
+    </div>
+  </main>
+
+</body>
+</html>
