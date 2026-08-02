@@ -305,7 +305,9 @@ const LV = (function () {
       <nav class="navbar">
         <div class="navbar-inner">
           <a class="brand" href="home.html">
-            <span class="brand-mark">🏘️</span> LocalVest
+            <div class="auth-logo-badge">
+              <img src="https://gmcconsultingvn.com/wp-content/uploads/2022/03/ic-ft-2.png" alt="Handshake Logo" class="logo-icon">
+            </div> LocalVest
           </a>
           <div class="nav-links">
             <a class="nav-link ${active === 'home' ? 'active' : ''}" href="home.html">Khám phá</a>
