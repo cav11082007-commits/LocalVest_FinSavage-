@@ -1,5 +1,20 @@
 {
+  "name": "localvest-backend",
+  "version": "1.0.0",
+  "description": "LocalVest Backend API Service - MVP 0-Cost Stack",
+  "main": "app/server.js",
+  "scripts": {
+    "start": "node app/server.js",
+    "dev": "node --watch app/server.js"
+  },
   "dependencies": {
-    "node-localstorage": "^3.0.5"
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "multer": "^1.4.5-lts.1",
+    "socket.io": "^4.7.5",
+    "pg": "^8.12.0"
   }
 }
