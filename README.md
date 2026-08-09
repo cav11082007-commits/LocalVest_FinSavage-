@@ -1,16 +1,32 @@
-# 🏆 LocalVest — Nền Tảng Gọi Vốn Cộng Đồng Minh Bạch (MVP Vòng 2)
+# 🏆 LocalVest — Nền Tảng Gọi Vốn Cộng Đồng Minh Bạch (MVP Vòng 2) — Nhánh testv1
 
 > **LocalVest** là nền tảng gọi vốn minh bạch kết hợp ký quỹ dòng tiền (Escrow), kiểm tra an toàn bằng AI (AI-Fraud Shield) và bản đồ tác động cộng đồng theo bán kính 3-5km (Hyperlocal Geofencing).
 
 ---
 
+## ⚠️ GHI CHÚ QUAN TRỌNG: VỀ CÁC ĐƯỜNG DẪN LINK (SWAGGER / WEBSOCKET)
+
+> [!WARNING]
+> Nếu bạn bấm vào link `http://127.0.0.1:8000/docs` hoặc `ws://127.0.0.1:8000/ws/live-feed` mà trình duyệt báo lỗi **"Không thể kết nối / Trang web không hoạt động"**:
+> 
+> **NGUYÊN NHÂN**: Do Server Python chưa được khởi động trong Terminal nên cổng `8000` chưa lắng nghe.
+> 
+> **CÁCH MỞ LINK THÀNH CÔNG**:
+> 1. Mở Terminal tại thư mục `LocalVest` và gõ:
+>    ```bash
+>    python run.py
+>    ```
+> 2. Giữ nguyên cửa sổ Terminal đó đang chạy, hệ thống sẽ tự động mở trình duyệt web lên cho bạn. Lúc này các đường dẫn link sẽ truy cập được 100%!
+
+---
+
 ## 🏛️ TỔNG QUAN KIẾN TRÚC HỆ THỐNG (SYSTEM DESIGN)
 
-Hệ thống được thiết kế theo mô hình **Modular Monolith (Python FastAPI)** tối ưu hóa cho chi phí vận hành **0 VNĐ**:
+Hệ thống được thiết kế theo mô hình **Modular Monolith (Python FastAPI)** trên nhánh `testv1`, tối ưu hóa cho chi phí vận hành **0 VNĐ**:
 
 ```
                               [ LocalVest Frontend ]
-                      (HTML5 / CSS3 / Vanilla JS - Preserved Files)
+                      (HTML5 / CSS3 / Vanilla JS - Giữ Nguyên Tên File Gốc)
                                        │
                     ┌──────────────────┴──────────────────┐
                     ▼                                     ▼
@@ -28,15 +44,18 @@ Hệ thống được thiết kế theo mô hình **Modular Monolith (Python Fas
 
 ---
 
-## 📂 CẤU TRÚC THƯ MỤC (FOLDER STRUCTURE)
+## 📂 CẤU TRÚC THƯ MỤC CHUYÊN NGHIỆP (ENTERPRISE FOLDER STRUCTURE)
 
+Toàn bộ tên file giao diện frontend được **giữ nguyên 100%** để đảm bảo tham chiếu liên kết giữa các trang web hoạt động hoàn hảo:
 
 ```text
 LocalVest/
+├── run.py                        # Launcher 1-Click duy nhất (python run.py)
 ├── README.md                     # Tài liệu thiết kế hệ thống & hướng dẫn chạy
+├── backend.md                    # Tài liệu ghi chú API & giải thích đường dẫn link
 ├── backend/                      # Python FastAPI Enterprise Backend
-│   ├── main.py                   # App chính & Đăng ký API Routers
-│   ├── run.py                    # Script chạy nhanh server (python run.py)
+│   ├── main.py                   # App chính, Phục vụ tĩnh Frontend & API Routers
+│   ├── run.py                    # Script chạy backend folder
 │   ├── requirements.txt          # Khai báo các thư viện Python
 │   └── app/
 │       ├── config.py             # Cấu hình môi trường & JWT Settings
@@ -73,27 +92,13 @@ LocalVest/
 
 ---
 
-## HƯỚNG DẪN CHẠY DỰ ÁN
+## ⚡ HƯỚNG DẪN KHỞI CHẠY HỆ THỐNG (1 LỆNH DUY NHẤT)
 
-### 1. Khởi chạy Python Backend API
 ```bash
-cd backend
-pip install -r requirements.txt
 python run.py
 ```
 
-- **Backend API**: `http://127.0.0.1:8000`
-- **Swagger Interactive API Docs**: `http://127.0.0.1:8000/docs`
-- **Realtime WebSocket**: `ws://127.0.0.1:8000/ws/live-feed`
-
-### 2. Mở Frontend Web App
-Mở file `frontend/index.html` hoặc `frontend/home.html` bằng Live Server hoặc trình duyệt bất kỳ.
-
----
-
-## 💎 ĐIỂM SÁNG ĐỀ XUẤT ĂN GIẢI VÒNG 2 (0đ COST STACK)
-
-1. **Escrow Double-Entry Ledger**: Dòng tiền nằm ở ví Ký quỹ nội bộ, chỉ được giải ngân từng mốc sau khi Admin kiểm tra bằng chứng thực tế.
-2. **AI Fraud Shield**: Chạy ngầm trong background quét từ khóa lừa đảo và ảnh trùng lặp, tính chỉ số `fraud_score` mà không chặn trải nghiệm người dùng.
-3. **Hyperlocal Geofencing (3-5km)**: Công thức Haversine + PostGIS GIST Index truy vấn dự án xung quanh bán kính hiện tại trong `< 20ms`.
-4. **WebSocket Live Feed**: Cập nhật tức thì các giao dịch tài trợ và quyết định giải ngân lên màn hình người dùng.
+- **🌐 Frontend Web App**: `http://127.0.0.1:8000/`
+- **🔑 Đăng nhập / KYC**: `http://127.0.0.1:8000/login_page.html`
+- **📖 Swagger Interactive API Docs**: `http://127.0.0.1:8000/docs`
+- **⚡ Realtime Live Feed WebSocket**: `ws://127.0.0.1:8000/ws/live-feed`
