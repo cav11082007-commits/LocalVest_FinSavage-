@@ -60,3 +60,27 @@ Lưu trữ cơ sở dữ liệu mẫu về các vụ lừa đảo gọi vốn c�
 ## 🛢️ 2. DDL SQL SCHEMA
 
 Cấu trúc chi tiết lệnh khởi tạo PostgreSQL / PostGIS được lưu tại [`backend/app/database/schema.sql`](file:///d:/LocalVest/backend/app/database/schema.sql).
+
+---
+
+## 🧪 3. HƯỚNG DẪN TEST SẢN PHẨM LOCALVEST (USER SCENARIOS)
+
+Dưới đây là kịch bản test nghiệm thu hệ thống (UAT) cho người dùng cuối và quản trị viên:
+
+### Kịch bản 1: User đăng nhập & Xác thực OTP
+1. Mở `http://127.0.0.1:8000/`. Hệ thống sẽ tự động chuyển hướng đến trang đăng nhập.
+2. Chọn **Đăng nhập bằng Email** -> Nhập email bất kỳ (VD: `test@gmail.com`).
+3. Nếu email chưa tồn tại, hệ thống chuyển sang Form Đăng ký. Điền đủ thông tin, SĐT và mật khẩu.
+4. (Demo OTP) Để test luồng có sẵn tài khoản: Dùng email `demo@localvest.vn` -> Nhập mật khẩu tùy ý -> Nhập OTP là `123456`.
+5. Đăng nhập thành công sẽ chuyển vào trang **Khám phá** (Home).
+
+### Kịch bản 2: User xem Dự án & Dòng tiền
+1. Sau khi vào trang Khám phá, kéo xuống danh sách dự án xung quanh (đã áp dụng Geofencing).
+2. Click vào **Xem chi tiết** một dự án (VD: "Phòng học miễn phí cho trẻ em xóm trọ").
+3. Chuyển sang tab **Dòng tiền** (Dashboard), bạn sẽ thấy giao diện **Chart.js** hiển thị đồ thị thân thiện: *Tiền đã gọi vốn, Đang ký quỹ, Đã giải ngân*. Mọi thông tin đều rõ ràng, không khô khan.
+
+### Kịch bản 3: Phân quyền & Quản trị viên (Admin Premium)
+1. Đăng xuất tài khoản User.
+2. Đăng nhập lại bằng Email: `admin@gmail.com`, Mật khẩu: `admin@123gmail.com`, OTP: `123456`.
+3. Nhận thấy điều hướng chuyển sang **Giao diện Admin Premium** (Dark Mode sang trọng).
+4. Khám phá Dashboard Admin hiển thị: Đồ thị Escrow Ledger cao cấp, Cảnh báo AI Fraud Score, Ảnh CCCD/Minh chứng của các User. User thường sẽ KHÔNG thấy được menu "Quản trị" này.

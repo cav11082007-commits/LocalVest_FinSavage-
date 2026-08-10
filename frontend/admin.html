@@ -121,6 +121,7 @@
 
     /* ===== CHART GRID ===== */
     .chart-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+    .chart-grid-3 { display: grid; grid-template-columns: 1fr; gap: 20px; margin-top: 20px; }
     @media (max-width: 780px) { .chart-grid-2 { grid-template-columns: 1fr; } }
     .chart-box { min-height: 260px; display: flex; flex-direction: column; }
     .chart-title { font-size: 13px; font-weight: 700; color: #d4a843; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -151,6 +152,8 @@
     .btn-reject:hover { background: rgba(220,50,50,0.3); }
     .btn-gold { background: rgba(212,168,67,0.15); color: #d4a843; border: 1px solid rgba(212,168,67,0.3); }
     .btn-gold:hover { background: rgba(212,168,67,0.28); }
+    .btn-info { background: rgba(47,84,150,0.3); color: #8cb4ff; border: 1px solid rgba(47,84,150,0.5); }
+    .btn-info:hover { background: rgba(47,84,150,0.5); }
 
     /* ===== SECTION HEADER ===== */
     .sec-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
@@ -255,6 +258,12 @@
       <div class="glass-card chart-box">
         <div class="chart-title">Điểm Nguy cơ AI Top Dự án</div>
         <canvas id="fraud-bar-chart" style="max-height:220px;"></canvas>
+      </div>
+    </div>
+    <div class="chart-grid-3">
+      <div class="glass-card chart-box" style="min-height:300px;">
+        <div class="chart-title">Biểu đồ Dòng tiền Toàn hệ thống (Real-time)</div>
+        <canvas id="system-cashflow-chart" style="max-height:260px;"></canvas>
       </div>
     </div>
   </div>
@@ -383,6 +392,17 @@
   </div>
 </div>
 
+<!-- MODAL: Project Details -->
+<div class="modal-overlay" id="project-detail-modal">
+  <div class="modal-box-dark" style="max-width:640px;">
+    <div class="modal-title-dark" id="detail-title">Chi tiết dự án</div>
+    <div style="font-size:13px; color:#c8d4e0; margin-bottom:16px; line-height:1.6;" id="detail-content"></div>
+    <div class="modal-actions">
+      <button class="btn-admin btn-gold" id="detail-close">Đóng</button>
+    </div>
+  </div>
+</div>
+
 <script src="js/app.js"></script>
 <script>
   // ===== ROLE GUARD =====
@@ -424,7 +444,7 @@
   }
 
   // ===== OVERVIEW TAB =====
-  let pieChart = null, barChart = null;
+  let pieChart = null, barChart = null, lineChart = null;
   function initOverviewCharts() {
     const projects = LV.getProjects();
     const queue = LV.getQueue();
@@ -492,6 +512,53 @@
         }
       }
     });
+
+    // Line Chart - System Cashflow
+    const ctx3 = document.getElementById('system-cashflow-chart').getContext('2d');
+    if (lineChart) lineChart.destroy();
+    
+    // Mock 7 days data
+    const labels = [];
+    for(let i=6; i>=0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      labels.push(d.toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'}));
+    }
+    
+    lineChart = new Chart(ctx3, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Tổng thu (Vào Escrow)',
+            data: [12000000, 15000000, 11000000, 18000000, 22000000, 19000000, 25000000],
+            borderColor: '#55e09a',
+            backgroundColor: 'rgba(85,224,154,0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4
+          },
+          {
+            label: 'Tổng chi (Giải ngân)',
+            data: [5000000, 3000000, 8000000, 4000000, 12000000, 7000000, 9000000],
+            borderColor: '#ff9f43',
+            backgroundColor: 'rgba(255,159,67,0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#c8d4e0', font: { size: 12 } } } },
+        scales: {
+          x: { ticks: { color: '#8a9bb5' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { ticks: { color: '#8a9bb5' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+        }
+      }
+    });
   }
 
   // ===== PROJECTS TAB =====
@@ -512,6 +579,7 @@
         <td><span class="badge badge-neutral">Pending</span></td>
         <td>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn-admin btn-info" data-view="${q.id}">🔍 Xem chi tiết</button>
             <button class="btn-admin btn-approve" data-approve="${q.id}">✓ Phê duyệt</button>
             <button class="btn-admin btn-reject" data-reject="${q.id}">✗ Từ chối</button>
           </div>
@@ -527,9 +595,35 @@
       </tr>`).join('')
       : `<tr><td colspan="4" style="text-align:center;color:#8a9bb5;padding:16px;">Chưa có lịch sử.</td></tr>`;
 
+    document.querySelectorAll('[data-view]').forEach(btn => btn.addEventListener('click', () => openDetailModal(btn.dataset.view)));
     document.querySelectorAll('[data-approve]').forEach(btn => btn.addEventListener('click', () => approveProject(btn.dataset.approve)));
     document.querySelectorAll('[data-reject]').forEach(btn => btn.addEventListener('click', () => openRejectModal(btn.dataset.reject)));
   }
+
+  function openDetailModal(id) {
+    const queue = LV.getQueue();
+    const q = queue.find(x => x.id === id);
+    if(!q) return;
+    
+    document.getElementById('detail-title').textContent = `Dự án: ${q.projectName}`;
+    document.getElementById('detail-content').innerHTML = `
+      <div style="margin-bottom:12px;"><strong>Người tạo:</strong> ${q.creatorName}</div>
+      <div style="margin-bottom:12px;"><strong>Khu vực:</strong> ${q.location}</div>
+      <div style="margin-bottom:12px;"><strong>Số tiền mục tiêu:</strong> <span style="color:#d4a843;font-weight:700;">${LV.formatVND(q.target)}</span></div>
+      <div style="margin-bottom:12px;"><strong>Mô tả:</strong> ${q.description || 'Không có mô tả'}</div>
+      <div style="margin-bottom:12px;"><strong>Phân tích AI:</strong> ${fraudBadge(q.fraudScore)} ${q.fraudReason}</div>
+      
+      <div style="margin-top:16px; border-top: 1px solid rgba(255,255,255,0.1); padding-top:16px;">
+        <strong>Hình ảnh minh chứng (Mock Data):</strong>
+        <div style="display:flex; gap:10px; margin-top:10px; overflow-x:auto;">
+          <img src="https://picsum.photos/seed/${q.id}1/200/140" style="border-radius:8px; border:1px solid rgba(255,255,255,0.2);">
+          <img src="https://picsum.photos/seed/${q.id}2/200/140" style="border-radius:8px; border:1px solid rgba(255,255,255,0.2);">
+        </div>
+      </div>
+    `;
+    document.getElementById('project-detail-modal').classList.add('open');
+  }
+  document.getElementById('detail-close').addEventListener('click', () => document.getElementById('project-detail-modal').classList.remove('open'));
 
   function approveProject(id) {
     const queue = LV.getQueue();
