@@ -208,7 +208,21 @@ const LV = (function () {
     return FIRST[Math.floor(Math.random() * FIRST.length)] + ' ' + LAST[Math.floor(Math.random() * LAST.length)];
   }
 
+  // Seed admin account
+  function ensureAdminAccount() {
+    const emails = getRegisteredEmails();
+    if (!emails.includes('admin@gmail.com')) {
+      emails.push('admin@gmail.com');
+      localStorage.setItem(KEYS.registeredEmails, JSON.stringify(emails));
+    }
+    // Ensure admin user object in a known key for role lookup
+    if (!localStorage.getItem('lv_admin_seeded')) {
+      localStorage.setItem('lv_admin_seeded', '1');
+    }
+  }
+
   function ensureSeed() {
+    ensureAdminAccount();
     if (!localStorage.getItem(KEYS.projects)) {
       const projects = seedProjects();
       localStorage.setItem(KEYS.projects, JSON.stringify(projects));
@@ -273,8 +287,22 @@ const LV = (function () {
   function setUser(u) { localStorage.setItem(KEYS.user, JSON.stringify(u)); }
   function logout() { localStorage.removeItem(KEYS.user); window.location.href = 'login_page.html'; }
 
+  function isAdmin() {
+    const u = getUser();
+    return u && (u.role === 'admin' || u.email === 'admin@gmail.com');
+  }
+
   function requireLogin() {
     if (!getUser()) window.location.href = 'login_page.html';
+  }
+
+  function requireAdmin() {
+    const u = getUser();
+    if (!u) { window.location.href = 'login_page.html'; return; }
+    if (!isAdmin()) {
+      toast('Bị từ chối: Quyền Quản trị viên mới được phép!', 'error');
+      setTimeout(() => { window.location.href = 'home.html'; }, 1500);
+    }
   }
 
   function getProjects() { return JSON.parse(localStorage.getItem(KEYS.projects) || '[]'); }
@@ -329,7 +357,7 @@ const LV = (function () {
             <a class="nav-link ${active === 'home' ? 'active' : ''}" href="home.html">Khám phá</a>
             <a class="nav-link ${active === 'dashboard' ? 'active' : ''}" href="dashboard.html">Dòng tiền</a>
             <a class="nav-link ${active === 'submit' ? 'active' : ''}" href="submit_project.html">Đăng dự án</a>
-            <a class="nav-link ${active === 'admin' ? 'active' : ''}" href="admin.html">Quản trị</a>
+            ${isAdmin() ? `<a class="nav-link ${active === 'admin' ? 'active' : ''}" href="admin.html" style="color:#d4a843;font-weight:700;">🛡️ Quản trị</a>` : ''}
           </div>
           <div class="nav-user">
             ${user ? `
@@ -349,7 +377,7 @@ const LV = (function () {
 
   return {
     KEYS, formatVND, formatDate, haversineKm, ensureSeed, randomName, initials,
-    getUser, setUser, logout, requireLogin,
+    getUser, setUser, logout, requireLogin, requireAdmin, isAdmin,
     getProjects, saveProjects, getProject,
     getQueue, saveQueue,
     getLedger, pushLedger,

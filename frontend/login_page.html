@@ -234,10 +234,14 @@
   termsModal.addEventListener('click', (e) => { if (e.target === termsModal) termsModal.classList.remove('open'); });
 
   /* ---------------- Đăng nhập thành công dùng chung ---------------- */
-  function loginSuccess(name, email) {
-    LV.setUser({ name: name || email.split('@')[0], email });
+  function loginSuccess(name, email, role) {
+    const isAdminEmail = email.toLowerCase() === 'admin@gmail.com';
+    const userRole = role || (isAdminEmail ? 'admin' : 'backer');
+    LV.setUser({ name: name || email.split('@')[0], email, role: userRole });
     LV.toast('Đăng nhập thành công, đang chuyển hướng...', 'success');
-    setTimeout(() => { window.location.href = 'home.html'; }, 600);
+    setTimeout(() => {
+      window.location.href = isAdminEmail ? 'admin.html' : 'home.html';
+    }, 600);
   }
 
   /* ---------------- Social login: Google + Apple (Clerk SDK thật) ---------------- */
@@ -382,11 +386,17 @@
     document.getElementById('email-error').classList.add('hidden');
 
     let ok = true;
+    const email = document.getElementById('auth-step-email').textContent.trim();
+    const isAdminLogin = email === 'admin@gmail.com';
+    // Admin: accept password 'admin@gmail.com', OTP: accept any 6-digit code
+    // Regular: accept any password (mock), OTP must be 6 digits
     if (passwordInput.value.trim().length < 1) { passwordField.classList.add('has-error'); ok = false; }
-    if (otpInput.value.trim() !== '123456') { otpField.classList.add('has-error'); ok = false; }
+    if (isAdminLogin && passwordInput.value.trim() !== 'admin@gmail.com') { passwordField.classList.add('has-error'); ok = false; }
+    const otp = otpInput.value.trim();
+    if (!/^\d{6}$/.test(otp)) { otpField.classList.add('has-error'); ok = false; }
     if (!ok) return;
 
-    loginSuccess(null, document.getElementById('auth-step-email').textContent);
+    loginSuccess(null, email);
   });
 
   let otpTimer = null;
@@ -441,7 +451,7 @@
     if (!ok) return;
 
     LV.addRegisteredEmail(email.value.trim());
-    loginSuccess(name.value.trim(), email.value.trim());
+    loginSuccess(name.value.trim(), email.value.trim(), 'backer');
   });
 </script>
 </body>

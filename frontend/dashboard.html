@@ -15,6 +15,19 @@
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
     tr.new-row { animation: flash 1.2s ease; }
     @keyframes flash { from { background: var(--color-primary-tint-10); } to { background: transparent; } }
+    /* Chart Modal */
+    .chart-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.58); z-index: 1000; align-items: center; justify-content: center; }
+    .chart-modal-overlay.open { display: flex; }
+    .chart-modal-box { background: white; border-radius: 16px; padding: 28px 28px 22px; max-width: 640px; width: 94%; position: relative; max-height: 88vh; overflow-y: auto; box-shadow: 0 12px 48px rgba(0,0,0,0.2); }
+    .chart-modal-close { position: absolute; top: 16px; right: 18px; cursor: pointer; font-size: 22px; color: #999; line-height: 1; }
+    .chart-modal-close:hover { color: #444; }
+    .chart-modal-title { font-size: 16px; font-weight: 800; margin-bottom: 4px; }
+    .chart-modal-sub { font-size: 13px; color: #888; margin-bottom: 18px; }
+    .chart-stats-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+    .chart-stat-pill { background: #f5f6fa; border-radius: 8px; padding: 8px 14px; font-size: 12px; }
+    .chart-stat-pill strong { font-size: 15px; display: block; }
+    .btn-chart { background: var(--color-primary); color: white; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; white-space: nowrap; }
+    .btn-chart:hover { opacity: 0.85; }
   </style>
 </head>
 <body>
@@ -25,9 +38,12 @@
       <div class="flex justify-between items-center mb-16" style="flex-wrap: wrap; gap:12px;">
         <div>
           <h1 class="page-title" style="margin-bottom:4px;">Dòng tiền minh bạch</h1>
-          <p class="page-subtitle" style="margin-bottom:0;"><span class="live-dot"></span> Cập nhật thời gian thực từ tầng Gold (Medallion Lakehouse)</p>
+          <p class="page-subtitle" style="margin-bottom:0;" id="dashboard-subtitle"><span class="live-dot"></span> Dòng tiền theo thời gian thực</p>
         </div>
-        <select class="input" id="project-select" style="width:auto; min-width:260px;"></select>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <select class="input" id="project-select" style="width:auto; min-width:220px;"></select>
+          <button class="btn-chart" id="open-chart-btn" title="Xem đồ thị dòng tiền">📊 Đồ thị</button>
+        </div>
       </div>
 
       <div id="escrow-banner"></div>
@@ -59,6 +75,20 @@
   </main>
 </div>
 
+<!-- Chart Modal -->
+<div class="chart-modal-overlay" id="chart-modal">
+  <div class="chart-modal-box">
+    <span class="chart-modal-close" id="close-chart-modal">&times;</span>
+    <div class="chart-modal-title" id="chart-modal-title">Đồ thị Dòng tiền</div>
+    <div class="chart-modal-sub" id="chart-modal-sub"></div>
+    <div class="chart-stats-row" id="chart-stats-row"></div>
+    <canvas id="cashflow-chart" style="max-height:220px; margin-bottom:20px;"></canvas>
+    <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:10px;">Tiến độ Cột mốc</div>
+    <canvas id="milestone-chart" style="max-height:180px;"></canvas>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="js/app.js"></script>
 <script>
   LV.requireLogin();
@@ -137,6 +167,84 @@
   select.addEventListener('change', () => {
     currentId = select.value;
     renderAll();
+  });
+
+  // Role-aware subtitle
+  (function() {
+    const sub = document.getElementById('dashboard-subtitle');
+    if (sub && LV.isAdmin()) {
+      sub.innerHTML = '<span class="live-dot"></span> Cập nhật thời gian thực từ tầng Gold (Medallion Lakehouse)';
+    }
+  })();
+
+  // ===== CHART MODAL =====
+  let cashflowChart = null;
+  let milestoneChart = null;
+
+  function openChartModal() {
+    const p = LV.getProject(currentId);
+    if (!p) return;
+    const ledger = LV.getLedger(p.id);
+    const totalIn = ledger.filter(e => e.type === 'in').reduce((s,e) => s + e.amount, 0);
+    const totalOut = ledger.filter(e => e.type === 'out').reduce((s,e) => s + e.amount, 0);
+    const balance = Math.max(0, totalIn - totalOut);
+    const pct = p.target > 0 ? Math.round(totalIn / p.target * 100) : 0;
+    const releasedMs = (p.milestones || []).filter(m => m.status === 'released').length;
+
+    document.getElementById('chart-modal-title').textContent = `Đồ thị Dòng tiền — ${p.name}`;
+    document.getElementById('chart-modal-sub').textContent = `Mục tiêu: ${LV.formatVND(p.target)} • Đã gọi vốn: ${pct}% • Cột mốc: ${releasedMs}/${(p.milestones||[]).length} hoàn thành`;
+    document.getElementById('chart-stats-row').innerHTML = [
+      {label: 'Tổng vào Escrow', val: LV.formatVND(totalIn), color: '#2f9e6e'},
+      {label: 'Đã giải ngân', val: LV.formatVND(totalOut), color: '#e55757'},
+      {label: 'Số dư Escrow', val: LV.formatVND(balance), color: '#2f5496'},
+    ].map(s => `<div class="chart-stat-pill"><strong style="color:${s.color}">${s.val}</strong>${s.label}</div>`).join('');
+
+    // Doughnut
+    const ctx1 = document.getElementById('cashflow-chart').getContext('2d');
+    if (cashflowChart) cashflowChart.destroy();
+    cashflowChart = new Chart(ctx1, {
+      type: 'doughnut',
+      data: {
+        labels: ['Vào Escrow', 'Đã giải ngân', 'Số dư còn lại'],
+        datasets: [{ data: [totalIn, totalOut, balance], backgroundColor: ['rgba(47,158,110,0.75)', 'rgba(229,87,87,0.75)', 'rgba(47,84,150,0.75)'], borderWidth: 2 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } } }
+    });
+
+    // Milestone bar
+    const milestones = (p.milestones || []);
+    const ctx2 = document.getElementById('milestone-chart').getContext('2d');
+    if (milestoneChart) milestoneChart.destroy();
+    if (milestones.length) {
+      milestoneChart = new Chart(ctx2, {
+        type: 'bar',
+        data: {
+          labels: milestones.map(m => m.name.slice(0,22)),
+          datasets: [{
+            label: 'Trạng thái Cột mốc',
+            data: milestones.map(m => m.status === 'released' ? 100 : m.status === 'pending' ? 50 : 0),
+            backgroundColor: milestones.map(m => m.status === 'released' ? 'rgba(47,158,110,0.75)' : m.status === 'pending' ? 'rgba(212,168,67,0.7)' : 'rgba(200,200,200,0.4)'),
+            borderRadius: 5,
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true, maintainAspectRatio: false,
+          scales: { x: { min: 0, max: 100, ticks: { callback: v => v + '%' } } },
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw === 100 ? 'Đã giải ngân' : ctx.raw === 50 ? 'Đang duyệt' : 'Chờ mở khóa' } } }
+        }
+      });
+    }
+
+    document.getElementById('chart-modal').classList.add('open');
+  }
+
+  document.getElementById('open-chart-btn').addEventListener('click', openChartModal);
+  document.getElementById('close-chart-modal').addEventListener('click', () => {
+    document.getElementById('chart-modal').classList.remove('open');
+  });
+  document.getElementById('chart-modal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('chart-modal')) document.getElementById('chart-modal').classList.remove('open');
   });
 
   renderAll();
