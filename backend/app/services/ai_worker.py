@@ -29,4 +29,4 @@ async def async_ai_flag_checker(project_id: str, name: str, description: str):
         "checked_at": datetime.now().isoformat()
     }
     store.ai_flags.append(flag)
-    print(f"🤖 [AI-Flag Worker] Checked Project {project_id} | Score: {fraud_score}%")
+    print(f"[AI-Flag Worker] Checked Project {project_id} | Score: {fraud_score}%")

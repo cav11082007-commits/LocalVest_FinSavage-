@@ -15,6 +15,14 @@
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
     tr.new-row { animation: flash 1.2s ease; }
     @keyframes flash { from { background: var(--color-primary-tint-10); } to { background: transparent; } }
+    /* Charts */
+    .chart-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    @media (max-width: 860px) { .chart-container { grid-template-columns: 1fr; } }
+    .chart-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--color-border); }
+    .chart-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: var(--color-text-dark); }
+    .chart-stats-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; justify-content: center; }
+    .chart-stat-pill { background: #f5f6fa; border-radius: 8px; padding: 8px 14px; font-size: 12px; text-align: center; flex: 1; }
+    .chart-stat-pill strong { font-size: 15px; display: block; }
   </style>
 </head>
 <body>
@@ -25,25 +33,25 @@
       <div class="flex justify-between items-center mb-16" style="flex-wrap: wrap; gap:12px;">
         <div>
           <h1 class="page-title" style="margin-bottom:4px;">Dòng tiền minh bạch</h1>
-          <p class="page-subtitle" style="margin-bottom:0;"><span class="live-dot"></span> Cập nhật thời gian thực từ tầng Gold (Medallion Lakehouse)</p>
+          <p class="page-subtitle" style="margin-bottom:0;" id="dashboard-subtitle"><span class="live-dot"></span> Dòng tiền theo thời gian thực</p>
         </div>
-        <select class="input" id="project-select" style="width:auto; min-width:260px;"></select>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <select class="input" id="project-select" style="width:auto; min-width:220px;"></select>
+        </div>
       </div>
 
       <div id="escrow-banner"></div>
 
-      <div class="stat-grid">
-        <div class="card card-pad">
-          <div class="text-sm text-muted">Tổng đã gọi vốn</div>
-          <div class="stat-value" id="stat-raised" style="color:var(--color-primary);">--</div>
+      <div class="chart-container">
+        <div class="chart-card">
+          <div class="chart-title">Phân bổ Dòng tiền (Escrow)</div>
+          <div class="chart-stats-row" id="chart-stats-row"></div>
+          <canvas id="cashflow-chart" style="max-height:220px;"></canvas>
         </div>
-        <div class="card card-pad">
-          <div class="text-sm text-muted">Đã giải ngân</div>
-          <div class="stat-value" id="stat-released" style="color:var(--color-danger);">--</div>
-        </div>
-        <div class="card card-pad">
-          <div class="text-sm text-muted">Số dư trong escrow</div>
-          <div class="stat-value" id="stat-balance" style="color:var(--color-success);">--</div>
+        <div class="chart-card">
+          <div class="chart-title">Tiến độ Cột mốc & Tương lai</div>
+          <p class="text-sm text-muted" id="chart-modal-sub" style="margin-top:-10px; margin-bottom: 16px;"></p>
+          <canvas id="milestone-chart" style="max-height:260px;"></canvas>
         </div>
       </div>
 
@@ -59,6 +67,9 @@
   </main>
 </div>
 
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="js/app.js"></script>
 <script>
   LV.requireLogin();
@@ -101,15 +112,11 @@
       `<div class="banner ${status.cls}">🔒 Trạng thái tài khoản escrow: <strong style="margin-left:4px;">${status.label}</strong> — dự án "${p.name}"</div>`;
 
     const ledger = LV.getLedger(p.id).slice().sort((a, b) => new Date(b.time) - new Date(a.time));
-    const totalIn = ledger.filter((e) => e.type === 'in').reduce((s, e) => s + e.amount, 0);
-    const totalOut = ledger.filter((e) => e.type === 'out').reduce((s, e) => s + e.amount, 0);
-    document.getElementById('stat-raised').textContent = LV.formatVND(totalIn);
-    document.getElementById('stat-released').textContent = LV.formatVND(totalOut);
-    document.getElementById('stat-balance').textContent = LV.formatVND(totalIn - totalOut);
-
     document.getElementById('ledger-body').innerHTML = ledger.length
       ? ledger.map((e) => renderRow(e)).join('')
       : `<tr><td colspan="3" class="text-center text-muted">Chưa có giao dịch nào.</td></tr>`;
+      
+    renderCharts(p, totalIn, totalOut, totalIn - totalOut);
   }
 
   function startSimulation() {
@@ -129,8 +136,7 @@
       tbody.insertAdjacentHTML('afterbegin', renderRow(entry, true));
       const totalIn = LV.getLedger(p.id).filter((e) => e.type === 'in').reduce((s, e) => s + e.amount, 0);
       const totalOut = LV.getLedger(p.id).filter((e) => e.type === 'out').reduce((s, e) => s + e.amount, 0);
-      document.getElementById('stat-raised').textContent = LV.formatVND(totalIn);
-      document.getElementById('stat-balance').textContent = LV.formatVND(totalIn - totalOut);
+      renderCharts(p, totalIn, totalOut, totalIn - totalOut);
     }, 6000);
   }
 
@@ -138,6 +144,67 @@
     currentId = select.value;
     renderAll();
   });
+
+  // Role-aware subtitle
+  (function() {
+    const sub = document.getElementById('dashboard-subtitle');
+    if (sub && LV.isAdmin()) {
+      sub.innerHTML = '<span class="live-dot"></span> Cập nhật thời gian thực từ tầng Gold (Medallion Lakehouse)';
+    }
+  })();
+
+  // ===== CHARTS =====
+  let cashflowChart = null;
+  let milestoneChart = null;
+
+  function renderCharts(p, totalIn, totalOut, balance) {
+    const pct = p.target > 0 ? Math.round(totalIn / p.target * 100) : 0;
+    const releasedMs = (p.milestones || []).filter(m => m.status === 'released').length;
+
+    document.getElementById('chart-modal-sub').textContent = `Mục tiêu: ${LV.formatVND(p.target)} • Đã đạt: ${pct}% • Hoàn thành: ${releasedMs}/${(p.milestones||[]).length} mốc`;
+    document.getElementById('chart-stats-row').innerHTML = [
+      {label: 'Tổng gọi vốn', val: LV.formatVND(totalIn), color: '#2f9e6e'},
+      {label: 'Đã giải ngân', val: LV.formatVND(totalOut), color: '#e55757'},
+      {label: 'Còn dư (Escrow)', val: LV.formatVND(balance), color: '#2f5496'},
+    ].map(s => `<div class="chart-stat-pill"><strong style="color:${s.color}">${s.val}</strong>${s.label}</div>`).join('');
+
+    // Doughnut
+    const ctx1 = document.getElementById('cashflow-chart').getContext('2d');
+    if (cashflowChart) cashflowChart.destroy();
+    cashflowChart = new Chart(ctx1, {
+      type: 'doughnut',
+      data: {
+        labels: ['Trong Escrow (Còn dư)', 'Đã giải ngân'],
+        datasets: [{ data: [balance, totalOut], backgroundColor: ['rgba(47,84,150,0.85)', 'rgba(229,87,87,0.85)'], borderWidth: 2 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } } }
+    });
+
+    // Milestone bar
+    const milestones = (p.milestones || []);
+    const ctx2 = document.getElementById('milestone-chart').getContext('2d');
+    if (milestoneChart) milestoneChart.destroy();
+    if (milestones.length) {
+      milestoneChart = new Chart(ctx2, {
+        type: 'bar',
+        data: {
+          labels: milestones.map(m => m.name.slice(0,25) + '...'),
+          datasets: [{
+            label: 'Tiến độ hoàn thành',
+            data: milestones.map(m => m.status === 'released' ? 100 : m.status === 'pending' ? 50 : 0),
+            backgroundColor: milestones.map(m => m.status === 'released' ? 'rgba(47,158,110,0.85)' : m.status === 'pending' ? 'rgba(212,168,67,0.85)' : 'rgba(200,200,200,0.4)'),
+            borderRadius: 6,
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true, maintainAspectRatio: false,
+          scales: { x: { min: 0, max: 100, ticks: { callback: v => v + '%' } } },
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw === 100 ? 'Đã giải ngân' : ctx.raw === 50 ? 'Đang duyệt / Sắp tới' : 'Mục tiêu tương lai' } } }
+        }
+      });
+    }
+  }
 
   renderAll();
   startSimulation();

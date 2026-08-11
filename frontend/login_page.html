@@ -58,6 +58,14 @@
         </svg>
         <span class="btn-label">Đăng nhập bằng Email</span>
       </button>
+
+      <!-- Đăng nhập bằng Số điện thoại (OTP) -->
+      <button type="button" class="social-btn" id="btn-phone-toggle" style="background-color: #f1f8ff; border-color: #cce5ff;">
+        <svg class="btn-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0056b3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+        </svg>
+        <span class="btn-label" style="color: #0056b3; font-weight: 600;">Đăng nhập bằng Số điện thoại</span>
+      </button>
     </div>
 
     <label class="terms-check">
@@ -120,6 +128,49 @@
 
       <button type="button" class="otp-resend" id="btn-resend-otp">Gửi lại mã</button>
       <button type="button" class="btn btn-primary btn-block" id="btn-verify-otp">Xác nhận đăng nhập</button>
+    </div>
+  </div>
+
+  <!-- ============ PHONE VIEW (OTP) ============ -->
+  <div class="auth-card hidden" id="phone-view">
+    <a href="#" id="phone-back-to-login" class="back-link">← Quay lại đăng nhập</a>
+
+    <div class="flex flex-col items-center" style="gap:16px;">
+      <div class="auth-logo-badge">
+        <img src="https://gmcconsultingvn.com/wp-content/uploads/2022/03/ic-ft-2.png" alt="Handshake Logo" class="logo-icon">
+      </div>
+      <div>
+        <div class="auth-title" style="font-size:22px;">Xác thực Số điện thoại</div>
+        <div class="auth-subtitle" id="phone-view-subtitle">Nhập số điện thoại để nhận mã OTP</div>
+      </div>
+    </div>
+
+    <div id="phone-error" class="banner banner-danger hidden">Đã có lỗi xảy ra, vui lòng thử lại sau.</div>
+
+    <!-- Bước 1: nhập số điện thoại -->
+    <div id="phone-step" class="flex flex-col gap-16">
+      <div class="field" id="phone-field" style="margin-bottom:0;">
+        <label>Số điện thoại</label>
+        <input type="tel" class="input" id="login-phone" placeholder="09xxxxxxxx">
+        <div class="error-text">Vui lòng nhập số điện thoại hợp lệ (10 số).</div>
+      </div>
+      <button type="button" class="btn btn-primary btn-block" id="btn-phone-continue">Nhận mã OTP</button>
+    </div>
+
+    <!-- Bước 2: nhập mã xác thực OTP -->
+    <div id="phone-auth-step" class="hidden flex flex-col gap-16">
+      <div class="hint" style="font-size:13px;color:var(--color-text-muted);">
+        Số điện thoại: <strong id="auth-step-phone"></strong>
+      </div>
+
+      <div class="field" id="phone-otp-field" style="margin-bottom:0;">
+        <label>Mã xác thực gồm 6 số (đã gửi SMS, demo: 123456)</label>
+        <input type="text" maxlength="6" class="input" id="login-phone-otp" placeholder="••••••">
+        <div class="error-text">Mã OTP không đúng hoặc đã hết hạn.</div>
+      </div>
+
+      <button type="button" class="otp-resend" id="btn-resend-phone-otp">Gửi lại mã</button>
+      <button type="button" class="btn btn-primary btn-block" id="btn-verify-phone-otp">Xác thực OTP & Đăng nhập</button>
     </div>
   </div>
 
@@ -208,13 +259,14 @@
 
   /* ---------------- Chuyển màn hình ---------------- */
   function showView(id) {
-    ['login-view', 'email-view', 'register-view'].forEach((v) => {
+    ['login-view', 'email-view', 'phone-view', 'register-view'].forEach((v) => {
       document.getElementById(v).classList.toggle('hidden', v !== id);
     });
   }
   document.getElementById('go-register').addEventListener('click', (e) => { e.preventDefault(); showView('register-view'); });
   document.getElementById('go-login').addEventListener('click', (e) => { e.preventDefault(); showView('login-view'); });
   document.getElementById('email-back-to-login').addEventListener('click', (e) => { e.preventDefault(); resetEmailFlow(); showView('login-view'); });
+  document.getElementById('phone-back-to-login').addEventListener('click', (e) => { e.preventDefault(); resetPhoneFlow(); showView('login-view'); });
   document.getElementById('register-back-to-login').addEventListener('click', (e) => { e.preventDefault(); showView('login-view'); });
 
   /* ---------------- Modal điều khoản: nhớ checkbox nào vừa mở modal để auto-tick ---------------- */
@@ -234,10 +286,14 @@
   termsModal.addEventListener('click', (e) => { if (e.target === termsModal) termsModal.classList.remove('open'); });
 
   /* ---------------- Đăng nhập thành công dùng chung ---------------- */
-  function loginSuccess(name, email) {
-    LV.setUser({ name: name || email.split('@')[0], email });
+  function loginSuccess(name, email, role) {
+    const isAdminEmail = email.toLowerCase() === 'admin@gmail.com';
+    const userRole = role || (isAdminEmail ? 'admin' : 'backer');
+    LV.setUser({ name: name || email.split('@')[0], email, role: userRole });
     LV.toast('Đăng nhập thành công, đang chuyển hướng...', 'success');
-    setTimeout(() => { window.location.href = 'home.html'; }, 600);
+    setTimeout(() => {
+      window.location.href = isAdminEmail ? 'admin.html' : 'home.html';
+    }, 600);
   }
 
   /* ---------------- Social login: Google + Apple (Clerk SDK thật) ---------------- */
@@ -382,11 +438,17 @@
     document.getElementById('email-error').classList.add('hidden');
 
     let ok = true;
+    const email = document.getElementById('auth-step-email').textContent.trim();
+    const isAdminLogin = email === 'admin@gmail.com';
+    // Admin: accept password 'admin@gmail.com', OTP: accept any 6-digit code
+    // Regular: accept any password (mock), OTP must be 6 digits
     if (passwordInput.value.trim().length < 1) { passwordField.classList.add('has-error'); ok = false; }
-    if (otpInput.value.trim() !== '123456') { otpField.classList.add('has-error'); ok = false; }
+    if (isAdminLogin && passwordInput.value.trim() !== 'admin@123gmail.com') { passwordField.classList.add('has-error'); ok = false; }
+    const otp = otpInput.value.trim();
+    if (!/^\d{6}$/.test(otp)) { otpField.classList.add('has-error'); ok = false; }
     if (!ok) return;
 
-    loginSuccess(null, document.getElementById('auth-step-email').textContent);
+    loginSuccess(null, email);
   });
 
   let otpTimer = null;
@@ -412,6 +474,87 @@
     if (btnResendOtp.disabled) return;
     LV.toast('Đã gửi lại mã xác thực (demo): 123456', 'info');
     startOtpCooldown();
+  });
+
+  /* ---------------- Chuyển sang màn Phone (Xác thực OTP thật) ---------------- */
+  document.getElementById('btn-phone-toggle').addEventListener('click', () => {
+    if (!document.getElementById('login-terms').checked) {
+      LV.toast('Vui lòng đồng ý với Điều khoản sử dụng trước khi tiếp tục.', 'error');
+      return;
+    }
+    resetPhoneFlow();
+    showView('phone-view');
+  });
+
+  function resetPhoneFlow() {
+    document.getElementById('phone-step').classList.remove('hidden');
+    document.getElementById('phone-auth-step').classList.add('hidden');
+    document.getElementById('phone-view-subtitle').textContent = 'Nhập số điện thoại để nhận mã OTP';
+    document.getElementById('phone-error').classList.add('hidden');
+    document.getElementById('login-phone').value = '';
+    document.getElementById('phone-field').classList.remove('has-error');
+    clearPhoneOtpTimer();
+  }
+
+  const btnPhoneContinue = document.getElementById('btn-phone-continue');
+  btnPhoneContinue.addEventListener('click', () => {
+    const phoneInput = document.getElementById('login-phone');
+    const field = document.getElementById('phone-field');
+    const phone = phoneInput.value.trim();
+
+    // Validate simple phone format (mock)
+    if (!phone.match(/^0\d{9}$/)) { field.classList.add('has-error'); return; }
+    field.classList.remove('has-error');
+    document.getElementById('phone-error').classList.add('hidden');
+
+    // Chuyển sang bước nhập OTP
+    document.getElementById('auth-step-phone').textContent = phone;
+    document.getElementById('phone-view-subtitle').textContent = 'Xác thực mã OTP để đăng nhập';
+    document.getElementById('phone-step').classList.add('hidden');
+    document.getElementById('phone-auth-step').classList.remove('hidden');
+    LV.toast('Đã gửi mã xác thực SMS (demo): 123456', 'info');
+    startPhoneOtpCooldown();
+  });
+
+  document.getElementById('btn-verify-phone-otp').addEventListener('click', () => {
+    const otpInput = document.getElementById('login-phone-otp');
+    const otpField = document.getElementById('phone-otp-field');
+
+    otpField.classList.remove('has-error');
+    document.getElementById('phone-error').classList.add('hidden');
+
+    const otp = otpInput.value.trim();
+    if (!/^\d{6}$/.test(otp)) { otpField.classList.add('has-error'); return; }
+
+    const phone = document.getElementById('auth-step-phone').textContent.trim();
+    // Tạo user giả định từ SĐT
+    const mockEmail = phone + '@phone.localvest.vn'; 
+    loginSuccess('User ' + phone.slice(-4), mockEmail, 'backer');
+  });
+
+  let phoneOtpTimer = null;
+  const btnResendPhoneOtp = document.getElementById('btn-resend-phone-otp');
+  function startPhoneOtpCooldown() {
+    let seconds = 60;
+    btnResendPhoneOtp.disabled = true;
+    btnResendPhoneOtp.textContent = `Gửi lại mã sau ${seconds}s`;
+    clearPhoneOtpTimer();
+    phoneOtpTimer = setInterval(() => {
+      seconds -= 1;
+      if (seconds <= 0) {
+        clearPhoneOtpTimer();
+        btnResendPhoneOtp.disabled = false;
+        btnResendPhoneOtp.textContent = 'Gửi lại mã';
+      } else {
+        btnResendPhoneOtp.textContent = `Gửi lại mã sau ${seconds}s`;
+      }
+    }, 1000);
+  }
+  function clearPhoneOtpTimer() { if (phoneOtpTimer) { clearInterval(phoneOtpTimer); phoneOtpTimer = null; } }
+  btnResendPhoneOtp.addEventListener('click', () => {
+    if (btnResendPhoneOtp.disabled) return;
+    LV.toast('Đã gửi lại SMS mã xác thực (demo): 123456', 'info');
+    startPhoneOtpCooldown();
   });
 
   /* ---------------- Register form ---------------- */
@@ -441,7 +584,7 @@
     if (!ok) return;
 
     LV.addRegisteredEmail(email.value.trim());
-    loginSuccess(name.value.trim(), email.value.trim());
+    loginSuccess(name.value.trim(), email.value.trim(), 'backer');
   });
 </script>
 </body>
