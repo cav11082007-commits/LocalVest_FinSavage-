@@ -37,6 +37,7 @@
         </div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
           <select class="input" id="project-select" style="width:auto; min-width:220px;"></select>
+          <span id="ws-status" class="text-sm text-muted"></span>
         </div>
       </div>
 
@@ -79,16 +80,129 @@
   LV.requireLogin();
   LV.renderNavbar('dashboard');
 
+  // ===== Kết nối Backend thật (task 3.2 — Test Realtime WebSocket) =====
+  // Backend FastAPI có catalog dự án RIÊNG (proj_1, proj_2 — xem backend/app/store.py),
+  // tách biệt hoàn toàn với dữ liệu mô phỏng trong localStorage. Dùng URL tuyệt đối để
+  // trang này gọi được backend thật bất kể đang mở qua cổng tĩnh nào.
+  const API_BASE = 'http://127.0.0.1:8000';
+  const WS_URL = 'ws://127.0.0.1:8000/ws/live-feed';
+
   const params = new URLSearchParams(window.location.search);
   const projects = LV.getProjects();
   const select = document.getElementById('project-select');
-  select.innerHTML = projects.map((p) => `<option value="${p.id}">${p.name}</option>`).join('');
+  select.innerHTML = `<optgroup label="Dữ liệu mô phỏng (localStorage)">` +
+    projects.map((p) => `<option value="${LV.esc(p.id)}" data-source="mock">${LV.esc(p.name)}</option>`).join('') +
+    `</optgroup>`;
 
   let currentId = params.get('id') && projects.some((p) => p.id === params.get('id'))
     ? params.get('id') : (projects[0] && projects[0].id);
   select.value = currentId;
 
   let simTimer = null;
+  let liveSocket = null;
+
+  function setWsStatus(text, cls) {
+    const el = document.getElementById('ws-status');
+    el.textContent = text;
+    el.style.color = cls === 'ok' ? 'var(--color-success)' : cls === 'err' ? 'var(--color-danger)' : '';
+  }
+
+  function stopLiveMode() {
+    if (liveSocket) { liveSocket.close(); liveSocket = null; }
+    setWsStatus('', '');
+  }
+
+  // Nạp danh sách dự án THẬT từ backend, chèn thêm vào dropdown ở một nhóm riêng để
+  // người xem phân biệt rõ đâu là dữ liệu giả lập, đâu là dữ liệu chạy qua WebSocket thật.
+  (async function loadRealProjects() {
+    try {
+      const res = await fetch(`${API_BASE}/api/campaigns`);
+      if (!res.ok) throw new Error('backend không phản hồi');
+      const { projects: realProjects } = await res.json();
+      if (!realProjects || !realProjects.length) return;
+      const group = document.createElement('optgroup');
+      group.label = '🔴 LIVE — Backend thật (WebSocket)';
+      group.innerHTML = realProjects.map((p) =>
+        `<option value="${LV.esc(p.id)}" data-source="real">${LV.esc(p.name)}</option>`
+      ).join('');
+      select.appendChild(group);
+    } catch (err) {
+      // Backend chưa chạy — không sao, dropdown vẫn dùng được với dữ liệu mô phỏng
+      setWsStatus('⚠ Không kết nối được backend thật (đang chạy python -m uvicorn?)', 'err');
+    }
+  })();
+
+  // Đưa dữ liệu ledger/dự án thật về đúng hình dạng mà renderRow()/renderCharts()/escrowStatus()
+  // sẵn có đang mong đợi, để tái dùng nguyên vẹn các hàm hiển thị — không viết trùng logic.
+  function adaptBackendEntry(e) {
+    return {
+      time: e.created_at,
+      desc: e.description,
+      amount: e.amount,
+      type: e.type === 'escrow_deposit' ? 'in' : 'out',
+    };
+  }
+  function adaptBackendProject(bp) {
+    return { id: bp.id, name: bp.name, target: bp.target_amount, raised: bp.raised_amount, milestones: bp.milestones || [] };
+  }
+
+  async function renderRealMode(projectId) {
+    stopLiveMode();
+    if (simTimer) { clearInterval(simTimer); simTimer = null; }
+
+    const [campaignRes, ledgerRes] = await Promise.all([
+      fetch(`${API_BASE}/api/campaigns/${projectId}`),
+      fetch(`${API_BASE}/api/payments/ledger/${projectId}`),
+    ]);
+    if (!campaignRes.ok || !ledgerRes.ok) { setWsStatus('⚠ Lỗi tải dữ liệu dự án thật', 'err'); return; }
+    const { project: rawProject } = await campaignRes.json();
+    const { ledger: rawLedger } = await ledgerRes.json();
+
+    const p = adaptBackendProject(rawProject);
+    const entries = rawLedger.map(adaptBackendEntry).sort((a, b) => new Date(b.time) - new Date(a.time));
+
+    const status = escrowStatus(p);
+    document.getElementById('escrow-banner').innerHTML =
+      `<div class="banner ${status.cls}">🔒 Trạng thái tài khoản escrow: <strong style="margin-left:4px;">${status.label}</strong> — dự án "${LV.esc(p.name)}" <span style="margin-left:8px;">🔴 LIVE</span></div>`;
+    document.getElementById('ledger-body').innerHTML = entries.length
+      ? entries.map((e) => renderRow(e)).join('')
+      : `<tr><td colspan="3" class="text-center text-muted">Chưa có giao dịch nào.</td></tr>`;
+    const totalIn = entries.filter((e) => e.type === 'in').reduce((s, e) => s + e.amount, 0);
+    const totalOut = entries.filter((e) => e.type === 'out').reduce((s, e) => s + e.amount, 0);
+    renderCharts(p, totalIn, totalOut, totalIn - totalOut);
+
+    // Mở kết nối WebSocket thật, lắng nghe đúng 2 sự kiện backend đang phát:
+    // NEW_TRANSACTION (từ payments.py khi có người đóng góp) và
+    // MILESTONE_RELEASED (từ admin.py khi admin giải ngân mốc).
+    setWsStatus('⏳ Đang kết nối WebSocket...', '');
+    liveSocket = new WebSocket(WS_URL);
+    liveSocket.onopen = () => setWsStatus('🟢 Đã kết nối — chờ giao dịch trực tiếp', 'ok');
+    liveSocket.onerror = () => setWsStatus('🔴 Lỗi kết nối WebSocket', 'err');
+    liveSocket.onclose = () => setWsStatus('⚪ Đã ngắt kết nối', '');
+    liveSocket.onmessage = (msg) => {
+      const payload = JSON.parse(msg.data);
+      if (!payload.data || payload.data.projectId !== projectId) return;   // sự kiện của dự án khác, bỏ qua
+
+      const entry = payload.event === 'NEW_TRANSACTION'
+        ? { time: payload.timestamp, desc: `+${LV.formatVND(payload.data.amount)} từ ${payload.data.backerName} (Ký quỹ Escrow)`, amount: payload.data.amount, type: 'in' }
+        : { time: payload.timestamp, desc: `Giải ngân mốc "${payload.data.milestoneName}"`, amount: payload.data.amount, type: 'out' };
+
+      const tbody = document.getElementById('ledger-body');
+      if (tbody.children.length === 1 && tbody.children[0].children.length === 1) tbody.innerHTML = ''; // xoá dòng "chưa có giao dịch"
+      tbody.insertAdjacentHTML('afterbegin', renderRow(entry, true));
+
+      const rows = Array.from(tbody.querySelectorAll('tr')).map((tr) => ({
+        type: tr.classList.contains('row-in') ? 'in' : 'out',
+        amount: Number(tr.children[2].textContent.replace(/[^\d]/g, '')),
+      }));
+      const newIn = rows.filter((r) => r.type === 'in').reduce((s, r) => s + r.amount, 0);
+      const newOut = rows.filter((r) => r.type === 'out').reduce((s, r) => s + r.amount, 0);
+      renderCharts(p, newIn, newOut, newIn - newOut);
+      LV.toast(`🔴 LIVE: ${entry.desc}`, payload.event === 'NEW_TRANSACTION' ? 'success' : 'info');
+    };
+  }
+
+  window.addEventListener('beforeunload', () => { if (liveSocket) liveSocket.close(); });
 
   function escrowStatus(p) {
     const released = p.milestones.filter((m) => m.status === 'released').length;
@@ -148,7 +262,14 @@
 
   select.addEventListener('change', () => {
     currentId = select.value;
-    renderAll();
+    const source = select.selectedOptions[0].dataset.source;
+    if (source === 'real') {
+      renderRealMode(currentId);
+    } else {
+      stopLiveMode();
+      renderAll();
+      startSimulation();
+    }
   });
 
   // Role-aware subtitle

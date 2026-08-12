@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.services.realtime import realtime_manager
-from app.api import auth, campaigns, payments, location, ai_flag, admin
+from app.api import auth, campaigns, payments, location, ai_flag, admin, notifications
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -37,6 +37,7 @@ app.include_router(payments.router, prefix=settings.API_PREFIX)
 app.include_router(location.router, prefix=settings.API_PREFIX)
 app.include_router(ai_flag.router, prefix=settings.API_PREFIX)
 app.include_router(admin.router, prefix=settings.API_PREFIX)
+app.include_router(notifications.router, prefix=settings.API_PREFIX)
 
 # 2. WebSocket Endpoint for Realtime Live Feed
 @app.websocket("/ws/live-feed")

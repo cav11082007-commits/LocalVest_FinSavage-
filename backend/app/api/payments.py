@@ -7,9 +7,25 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from app.schemas.schemas import MoMoWebhookSchema
 from app.services.realtime import realtime_manager
+from app.services.notifications import notify
 from app.store import store
 
 router = APIRouter(prefix="/payments", tags=["3. Payment & Escrow Service"])
+
+@router.get("/ledger/{project_id}")
+def get_ledger(project_id: str):
+    """Đọc sổ cái escrow của một dự án — cần cho dashboard nạp trạng thái ban đầu
+    trước khi lắng nghe cập nhật tiếp theo qua WebSocket /ws/live-feed."""
+    entries = [e for e in store.ledger if e["project_id"] == project_id]
+    total_in = sum(e["amount"] for e in entries if e["type"] == "escrow_deposit")
+    total_out = sum(e["amount"] for e in entries if e["type"] == "milestone_release")
+    return {
+        "projectId": project_id,
+        "ledger": entries,
+        "totalIn": total_in,
+        "totalOut": total_out,
+        "balance": total_in - total_out,
+    }
 
 @router.post("/momo-webhook")
 async def momo_webhook(data: MoMoWebhookSchema):
@@ -43,5 +59,11 @@ async def momo_webhook(data: MoMoWebhookSchema):
         "raisedTotal": project["raised_amount"],
         "targetTotal": project["target_amount"]
     })
+    await notify(
+        user_id=project.get("owner_id"),
+        title="Có khoản đóng góp mới",
+        message=f'{ledger_entry["user_name"]} vừa đóng góp {data.amount:,.0f}đ cho dự án "{project["name"]}".',
+        n_type="donation",
+    )
 
     return {"status": "success", "message": "Ghi nhận đóng góp Escrow thành công", "ledger": ledger_entry}

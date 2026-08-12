@@ -23,6 +23,22 @@ const LV = (function () {
     return prefix + '_' + Math.random().toString(36).slice(2, 9);
   }
 
+  /**
+   * Escape dữ liệu trước khi ghép vào chuỗi HTML.
+   * MỌI giá trị lấy từ kho dữ liệu (tên dự án, mô tả, tên người dùng...) phải đi qua
+   * hàm này trước khi vào innerHTML — nếu ghép thẳng, một hồ sơ đặt tên kiểu
+   * <img src=x onerror=...> sẽ chạy được mã trên máy người xem.
+   */
+  function esc(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function formatVND(n) {
     return Math.round(n).toLocaleString('vi-VN') + 'đ';
   }
@@ -292,16 +308,26 @@ const LV = (function () {
     return u && (u.role === 'admin' || u.email === 'admin@gmail.com');
   }
 
+  // Gán window.location KHÔNG dừng script đang chạy — trình duyệt thực thi nốt phần còn
+  // lại của trang rồi mới điều hướng. Cả hai hàm dưới đây NÉM LỖI để dừng hẳn, tránh
+  // trường hợp người chưa đủ quyền vẫn kịp thấy/thao tác nội dung trong lúc chờ chuyển trang.
   function requireLogin() {
-    if (!getUser()) window.location.href = 'login_page.html';
+    if (!getUser()) {
+      window.location.replace('login_page.html');
+      throw new Error('LocalVest: chưa đăng nhập — đã dừng render trang.');
+    }
   }
 
   function requireAdmin() {
     const u = getUser();
-    if (!u) { window.location.href = 'login_page.html'; return; }
+    if (!u) {
+      window.location.replace('login_page.html');
+      throw new Error('LocalVest: chưa đăng nhập — đã dừng render trang quản trị.');
+    }
     if (!isAdmin()) {
       toast('Bị từ chối: Quyền Quản trị viên mới được phép!', 'error');
-      setTimeout(() => { window.location.href = 'home.html'; }, 1500);
+      setTimeout(() => { window.location.replace('home.html'); }, 1500);
+      throw new Error('LocalVest: tài khoản không có quyền quản trị — đã dừng render trang quản trị.');
     }
   }
 
@@ -361,9 +387,21 @@ const LV = (function () {
           </div>
           <div class="nav-user">
             ${user ? `
-              <div class="nav-avatar">${initials(user.name)}</div>
+              <div class="nav-bell-wrap" style="position:relative;">
+                <button id="nav-bell-btn" aria-label="Thông báo" style="position:relative;background:none;border:none;cursor:pointer;font-size:20px;padding:6px;">
+                  🔔<span id="nav-bell-badge" class="hidden" style="position:absolute;top:0;right:0;background:var(--color-danger,#e55757);color:#fff;font-size:10px;font-weight:700;border-radius:999px;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 3px;"></span>
+                </button>
+                <div id="nav-bell-panel" class="hidden" style="position:absolute;right:0;top:36px;width:320px;max-height:380px;overflow-y:auto;background:#fff;border:1px solid var(--color-border,#e2e8f0);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:200;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--color-border,#e2e8f0);">
+                    <strong style="font-size:13px;">Thông báo</strong>
+                    <button id="nav-bell-mark-all" style="background:none;border:none;color:var(--color-primary,#2f5496);font-size:12px;cursor:pointer;">Đánh dấu đã đọc hết</button>
+                  </div>
+                  <div id="nav-bell-list" style="font-size:13px;"><div style="padding:16px;color:#8a9bb5;text-align:center;">Đang tải...</div></div>
+                </div>
+              </div>
+              <div class="nav-avatar">${esc(initials(user.name))}</div>
               <div>
-                <div class="nav-user-name">${user.name}</div>
+                <div class="nav-user-name">${esc(user.name)}</div>
                 <a class="nav-logout" id="nav-logout-btn" href="#">Đăng xuất</a>
               </div>
             ` : `<a class="btn btn-outline btn-sm" href="login_page.html">Đăng nhập</a>`}
@@ -373,6 +411,94 @@ const LV = (function () {
     `;
     const logoutBtn = document.getElementById('nav-logout-btn');
     if (logoutBtn) logoutBtn.addEventListener('click', (e) => { e.preventDefault(); logout(); });
+    if (user) wireNotificationBell();
+  }
+
+  /**
+   * Chuông thông báo — khác LV.toast() (hiện vài giây rồi biến mất), đây là thông báo
+   * LƯU TRỮ được: tải qua GET /api/notifications, cập nhật tức thời qua cùng WebSocket
+   * /ws/live-feed dùng cho dashboard (sự kiện NOTIFICATION). Chưa có luồng đăng nhập JWT
+   * thật (task của Linh) nên tạm tự lấy token bằng tài khoản demo đã seed sẵn trên backend.
+   */
+  function wireNotificationBell() {
+    const NOTI_API = 'http://127.0.0.1:8000';
+    const btn = document.getElementById('nav-bell-btn');
+    const panel = document.getElementById('nav-bell-panel');
+    const badge = document.getElementById('nav-bell-badge');
+    const list = document.getElementById('nav-bell-list');
+    if (!btn) return;
+
+    let token = null;
+    async function getToken() {
+      if (token) return token;
+      const email = isAdmin() ? 'admin@localvest.vn' : 'demo@localvest.vn';
+      const res = await fetch(`${NOTI_API}/api/auth/login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: 'x' }),
+      });
+      if (!res.ok) throw new Error('no backend');
+      token = (await res.json()).token;
+      return token;
+    }
+
+    function renderList(items) {
+      list.innerHTML = items.length ? items.map((n) => `
+        <div class="nb-item" data-id="${esc(n.id)}" style="padding:10px 14px;border-bottom:1px solid #f1f5f9;cursor:pointer;${n.is_read ? 'opacity:.55;' : 'background:#f8fafc;'}">
+          <div style="font-weight:600;">${esc(n.title)}</div>
+          <div style="color:#64748b;margin-top:2px;">${esc(n.message)}</div>
+          <div style="color:#94a3b8;font-size:11px;margin-top:4px;">${esc(formatDate(n.created_at))}</div>
+        </div>`).join('')
+        : `<div style="padding:16px;color:#8a9bb5;text-align:center;">Chưa có thông báo nào.</div>`;
+      list.querySelectorAll('.nb-item').forEach((el) => el.addEventListener('click', async () => {
+        try {
+          const t = await getToken();
+          await fetch(`${NOTI_API}/api/notifications/${el.dataset.id}/read`, { method: 'POST', headers: { Authorization: `Bearer ${t}` } });
+          load();
+        } catch (e) { /* backend chưa chạy, bỏ qua */ }
+      }));
+    }
+
+    async function load() {
+      try {
+        const t = await getToken();
+        const res = await fetch(`${NOTI_API}/api/notifications`, { headers: { Authorization: `Bearer ${t}` } });
+        const data = await res.json();
+        renderList(data.notifications);
+        badge.textContent = data.unreadCount > 9 ? '9+' : String(data.unreadCount);
+        badge.classList.toggle('hidden', data.unreadCount === 0);
+      } catch (e) {
+        list.innerHTML = `<div style="padding:16px;color:#e55757;text-align:center;">⚠ Không kết nối được backend thật.</div>`;
+      }
+    }
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      panel.classList.toggle('hidden');
+      if (!panel.classList.contains('hidden')) load();
+    });
+    document.addEventListener('click', (e) => {
+      if (!panel.contains(e.target) && e.target !== btn) panel.classList.add('hidden');
+    });
+    document.getElementById('nav-bell-mark-all').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      try {
+        const t = await getToken();
+        await fetch(`${NOTI_API}/api/notifications/read-all`, { method: 'POST', headers: { Authorization: `Bearer ${t}` } });
+        load();
+      } catch (err) { /* bỏ qua */ }
+    });
+
+    // Cập nhật số chưa đọc ngay khi có sự kiện mới, không cần bấm chuông mới thấy
+    try {
+      const ws = new WebSocket('ws://127.0.0.1:8000/ws/live-feed');
+      ws.onmessage = (msg) => {
+        const payload = JSON.parse(msg.data);
+        if (payload.event === 'NOTIFICATION') load();
+      };
+      window.addEventListener('beforeunload', () => ws.close());
+    } catch (e) { /* backend chưa chạy */ }
+
+    load();
   }
 
   return {
@@ -382,7 +508,7 @@ const LV = (function () {
     getQueue, saveQueue,
     getLedger, pushLedger,
     getRegisteredEmails, addRegisteredEmail, checkEmailExists,
-    toast, renderNavbar, uid,
+    toast, renderNavbar, uid, esc,
     BASE_LAT, BASE_LNG,
   };
 })();
