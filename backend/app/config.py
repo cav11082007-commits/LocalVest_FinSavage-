@@ -14,6 +14,8 @@ class Settings:
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_DAYS: int = 7
     
+    MOMO_SECRET_KEY: str = os.getenv("MOMO_SECRET_KEY", "localvest_momo_secret_123")
+    
     DATABASE_URL: str = os.getenv("DATABASE_URL", "") # Empty defaults to hybrid store
     
     CORS_ORIGINS: list = ["*"]
