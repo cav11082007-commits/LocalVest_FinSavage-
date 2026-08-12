@@ -121,7 +121,7 @@
       </div>
 
       <div class="field" id="otp-field" style="margin-bottom:0;">
-        <label>Mã xác thực gồm 6 số (đã gửi đến email của bạn, demo: 123456)</label>
+        <label>Mã xác thực gồm 6 số (đã gửi đến email của bạn)</label>
         <input type="text" maxlength="6" class="input" id="login-otp" placeholder="••••••">
         <div class="error-text">Mã OTP không đúng hoặc đã hết hạn.</div>
       </div>
@@ -164,7 +164,7 @@
       </div>
 
       <div class="field" id="phone-otp-field" style="margin-bottom:0;">
-        <label>Mã xác thực gồm 6 số (đã gửi SMS, demo: 123456)</label>
+        <label>Mã xác thực gồm 6 số (đã gửi SMS)</label>
         <input type="text" maxlength="6" class="input" id="login-phone-otp" placeholder="••••••">
         <div class="error-text">Mã OTP không đúng hoặc đã hết hạn.</div>
       </div>
@@ -298,82 +298,83 @@
 
   /* ---------------- Social login: Google + Apple (Clerk SDK thật) ---------------- */
   const socialBtns = document.querySelectorAll('.social-btn');
-  function setLoadingState(activeBtn) {
-    socialBtns.forEach(btn => {
-      btn.classList.toggle('is-loading', btn === activeBtn);
-      btn.classList.toggle('is-disabled', btn !== activeBtn);
-    });
-  }
-  function clearLoadingState() {
-    socialBtns.forEach(btn => btn.classList.remove('is-loading', 'is-disabled'));
-  }
-  function showLoginError() {
-    clearLoadingState();
-    document.getElementById('login-error').classList.remove('hidden');
-  }
 
-  document.querySelector('.social-btn[data-provider="Google"]').addEventListener('click', async (e) => {
-    if (!document.getElementById('login-terms').checked) {
-      LV.toast('Vui lòng đồng ý với Điều khoản sử dụng trước khi tiếp tục.', 'error');
-      return;
-    }
-    document.getElementById('login-error').classList.add('hidden');
-    setLoadingState(e.currentTarget);
-    try {
-      await window.Clerk.load();
-      await window.Clerk.client.signIn.authenticateWithRedirect({
-        strategy: 'oauth_google',
-        redirectUrl: window.location.href.split('?')[0],
-        redirectUrlComplete: 'home.html',
-      });
-    } catch (err) {
-      console.error('Đăng nhập Google thất bại:', err);
-      showLoginError();
-    }
+  // 1. SOCIAL LOGIN MOCK (Google & Apple)
+  document.querySelector('.social-btn[data-provider="Google"]').addEventListener('click', (e) => {
+    e.preventDefault();
+    LV.toast('Tính năng chưa được cập nhật, vui lòng chọn 1 trong 2 hình thức (Email / SĐT)', 'warning');
   });
 
-  document.querySelector('.social-btn[data-provider="Apple"]').addEventListener('click', async (e) => {
-    if (!document.getElementById('login-terms').checked) {
-      LV.toast('Vui lòng đồng ý với Điều khoản sử dụng trước khi tiếp tục.', 'error');
-      return;
-    }
-    document.getElementById('login-error').classList.add('hidden');
-    setLoadingState(e.currentTarget);
-    try {
-      await window.Clerk.load();
-      await window.Clerk.client.signIn.authenticateWithRedirect({
-        strategy: 'oauth_apple',
-        redirectUrl: window.location.href.split('?')[0],
-        redirectUrlComplete: 'home.html',
-      });
-    } catch (err) {
-      console.error('Đăng nhập Apple thất bại:', err);
-      showLoginError();
-    }
+  document.querySelector('.social-btn[data-provider="Apple"]').addEventListener('click', (e) => {
+    e.preventDefault();
+    LV.toast('Tính năng chưa được cập nhật, vui lòng chọn 1 trong 2 hình thức (Email / SĐT)', 'warning');
   });
 
-  // Xử lý khi trang được Google/Apple redirect quay lại
-  (async function handlePossibleRedirect() {
-    const params = new URLSearchParams(window.location.search);
-    const isReturning = params.has('__clerk_status') || params.has('__clerk_created_session');
-    if (!isReturning) return;
+  /* ---------------- API CLIENT HELPERS ---------------- */
+  // Tự động nhận diện URL backend: nếu chạy trực tiếp qua file:// hoặc Live Server 5500 -> chỉ định thẳng port 8000
+  const API_BASE = (window.location.protocol.startsWith('http') && window.location.origin.includes(':8000'))
+    ? ''
+    : 'http://127.0.0.1:8000';
+
+  async function requestBackendOtp(identifier, type) {
     try {
-      await window.Clerk.load();
-      await window.Clerk.handleRedirectCallback({ redirectUrlComplete: 'home.html' });
-      if (window.Clerk.user) {
-        LV.setUser({
-          name: window.Clerk.user.fullName || window.Clerk.user.primaryEmailAddress?.emailAddress,
-          email: window.Clerk.user.primaryEmailAddress?.emailAddress,
-        });
-        window.location.href = 'home.html';
+      const res = await fetch(`${API_BASE}/api/auth/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: identifier, type: type })
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        const otpCode = data.otp || data.mock_otp;
+        const msg = `🔔 Mã xác thực OTP của bạn là: ${otpCode}`;
+        LV.toast(msg, 'info', 8000);
+
+        // Auto-fill OTP field if convenience
+        if (type === 'email') {
+          const el = document.getElementById('login-otp');
+          if (el) el.value = otpCode;
+        } else {
+          const el = document.getElementById('login-phone-otp');
+          if (el) el.value = otpCode;
+        }
+        return otpCode;
       }
-    } catch (err) {
-      console.error('Xác thực callback thất bại:', err);
-      showLoginError();
-    }
-  })();
 
-  /* ---------------- Chuyển sang màn Email (tách riêng hẳn) ---------------- */
+      LV.toast(data.detail || 'Không thể gửi mã OTP. Vui lòng kiểm tra lại!', 'error');
+      return null;
+    } catch (e) {
+      console.warn('Backend send-otp connection error:', e);
+      LV.toast('Không thể kết nối máy chủ backend. Vui lòng kiểm tra lệnh "python run.py" đã được bật!', 'error', 6000);
+      return null;
+    }
+  }
+
+  async function verifyBackendOtp(identifier, type, otp) {
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: identifier, type: type, otp: otp })
+      });
+      const data = await res.json();
+
+      if (res.ok && (data.access_token || data.token)) {
+        const token = data.access_token || data.token;
+        localStorage.setItem('lv_token', token);
+        return data;
+      }
+
+      LV.toast(data.detail || 'Mã OTP không đúng hoặc đã hết hạn.', 'error');
+      return null;
+    } catch (e) {
+      console.warn('Backend verify-otp error:', e);
+      LV.toast('Xác thực OTP thất bại. Vui lòng kiểm tra lại server "python run.py"!', 'error');
+      return null;
+    }
+  }
+
+  /* ---------------- LUỒNG EMAIL ---------------- */
   document.getElementById('btn-email-toggle').addEventListener('click', () => {
     if (!document.getElementById('login-terms').checked) {
       LV.toast('Vui lòng đồng ý với Điều khoản sử dụng trước khi tiếp tục.', 'error');
@@ -393,6 +394,7 @@
     clearOtpTimer();
   }
 
+  let activeEmail = '';
   const btnEmailContinue = document.getElementById('btn-email-continue');
   btnEmailContinue.addEventListener('click', async () => {
     const emailInput = document.getElementById('login-email');
@@ -404,22 +406,19 @@
     document.getElementById('email-error').classList.add('hidden');
 
     btnEmailContinue.disabled = true;
-    btnEmailContinue.textContent = 'Đang kiểm tra...';
+    btnEmailContinue.textContent = 'Đang gửi mã OTP...';
     try {
-      const exists = await LV.checkEmailExists(email); // endpoint mock, xem app.js
-      if (!exists) {
-        document.getElementById('reg-email').value = email;
-        showView('register-view');
-      } else {
+      activeEmail = email;
+      const otpCode = await requestBackendOtp(email, 'email');
+      if (otpCode) {
         document.getElementById('auth-step-email').textContent = email;
-        document.getElementById('email-view-subtitle').textContent = 'Nhập mật khẩu và mã xác thực để tiếp tục';
+        document.getElementById('email-view-subtitle').textContent = 'Nhập mã xác thực ngẫu nhiên 6 số để tiếp tục';
         document.getElementById('email-step').classList.add('hidden');
         document.getElementById('auth-step').classList.remove('hidden');
-        LV.toast('Đã gửi mã xác thực (demo): 123456', 'info');
         startOtpCooldown();
       }
     } catch (err) {
-      console.error('Kiểm tra email thất bại:', err);
+      console.error('Gửi mã OTP Email thất bại:', err);
       document.getElementById('email-error').classList.remove('hidden');
     } finally {
       btnEmailContinue.disabled = false;
@@ -427,28 +426,19 @@
     }
   });
 
-  document.getElementById('btn-verify-otp').addEventListener('click', () => {
-    const passwordInput = document.getElementById('login-password');
+  document.getElementById('btn-verify-otp').addEventListener('click', async () => {
     const otpInput = document.getElementById('login-otp');
-    const passwordField = document.getElementById('password-field');
     const otpField = document.getElementById('otp-field');
-
-    passwordField.classList.remove('has-error');
     otpField.classList.remove('has-error');
     document.getElementById('email-error').classList.add('hidden');
 
-    let ok = true;
-    const email = document.getElementById('auth-step-email').textContent.trim();
-    const isAdminLogin = email === 'admin@gmail.com';
-    // Admin: accept password 'admin@gmail.com', OTP: accept any 6-digit code
-    // Regular: accept any password (mock), OTP must be 6 digits
-    if (passwordInput.value.trim().length < 1) { passwordField.classList.add('has-error'); ok = false; }
-    if (isAdminLogin && passwordInput.value.trim() !== 'admin@123gmail.com') { passwordField.classList.add('has-error'); ok = false; }
     const otp = otpInput.value.trim();
-    if (!/^\d{6}$/.test(otp)) { otpField.classList.add('has-error'); ok = false; }
-    if (!ok) return;
+    if (!/^\d{6}$/.test(otp)) { otpField.classList.add('has-error'); return; }
 
-    loginSuccess(null, email);
+    const res = await verifyBackendOtp(activeEmail, 'email', otp);
+    if (res && res.user) {
+      loginSuccess(res.user.full_name, res.user.email, res.user.role, res.access_token || res.token);
+    }
   });
 
   let otpTimer = null;
@@ -470,13 +460,13 @@
     }, 1000);
   }
   function clearOtpTimer() { if (otpTimer) { clearInterval(otpTimer); otpTimer = null; } }
-  btnResendOtp.addEventListener('click', () => {
-    if (btnResendOtp.disabled) return;
-    LV.toast('Đã gửi lại mã xác thực (demo): 123456', 'info');
+  btnResendOtp.addEventListener('click', async () => {
+    if (btnResendOtp.disabled || !activeEmail) return;
+    await requestBackendOtp(activeEmail, 'email');
     startOtpCooldown();
   });
 
-  /* ---------------- Chuyển sang màn Phone (Xác thực OTP thật) ---------------- */
+  /* ---------------- LUỒNG SỐ ĐIỆN THOẠI (OTP) ---------------- */
   document.getElementById('btn-phone-toggle').addEventListener('click', () => {
     if (!document.getElementById('login-terms').checked) {
       LV.toast('Vui lòng đồng ý với Điều khoản sử dụng trước khi tiếp tục.', 'error');
@@ -496,40 +486,51 @@
     clearPhoneOtpTimer();
   }
 
+  let activePhone = '';
   const btnPhoneContinue = document.getElementById('btn-phone-continue');
-  btnPhoneContinue.addEventListener('click', () => {
+  btnPhoneContinue.addEventListener('click', async () => {
     const phoneInput = document.getElementById('login-phone');
     const field = document.getElementById('phone-field');
     const phone = phoneInput.value.trim();
 
-    // Validate simple phone format (mock)
     if (!phone.match(/^0\d{9}$/)) { field.classList.add('has-error'); return; }
     field.classList.remove('has-error');
     document.getElementById('phone-error').classList.add('hidden');
 
-    // Chuyển sang bước nhập OTP
-    document.getElementById('auth-step-phone').textContent = phone;
-    document.getElementById('phone-view-subtitle').textContent = 'Xác thực mã OTP để đăng nhập';
-    document.getElementById('phone-step').classList.add('hidden');
-    document.getElementById('phone-auth-step').classList.remove('hidden');
-    LV.toast('Đã gửi mã xác thực SMS (demo): 123456', 'info');
-    startPhoneOtpCooldown();
+    btnPhoneContinue.disabled = true;
+    btnPhoneContinue.textContent = 'Đang gửi mã OTP...';
+    try {
+      activePhone = phone;
+      const otpCode = await requestBackendOtp(phone, 'phone');
+      if (otpCode) {
+        document.getElementById('auth-step-phone').textContent = phone;
+        document.getElementById('phone-view-subtitle').textContent = 'Xác thực mã OTP 6 số để đăng nhập';
+        document.getElementById('phone-step').classList.add('hidden');
+        document.getElementById('phone-auth-step').classList.remove('hidden');
+        startPhoneOtpCooldown();
+      }
+    } catch (err) {
+      console.error('Gửi mã OTP SĐT thất bại:', err);
+      document.getElementById('phone-error').classList.remove('hidden');
+    } finally {
+      btnPhoneContinue.disabled = false;
+      btnPhoneContinue.textContent = 'Nhận mã OTP';
+    }
   });
 
-  document.getElementById('btn-verify-phone-otp').addEventListener('click', () => {
+  document.getElementById('btn-verify-phone-otp').addEventListener('click', async () => {
     const otpInput = document.getElementById('login-phone-otp');
     const otpField = document.getElementById('phone-otp-field');
-
     otpField.classList.remove('has-error');
     document.getElementById('phone-error').classList.add('hidden');
 
     const otp = otpInput.value.trim();
     if (!/^\d{6}$/.test(otp)) { otpField.classList.add('has-error'); return; }
 
-    const phone = document.getElementById('auth-step-phone').textContent.trim();
-    // Tạo user giả định từ SĐT
-    const mockEmail = phone + '@phone.localvest.vn'; 
-    loginSuccess('User ' + phone.slice(-4), mockEmail, 'backer');
+    const res = await verifyBackendOtp(activePhone, 'phone', otp);
+    if (res && res.user) {
+      loginSuccess(res.user.full_name, res.user.email || res.user.phone, res.user.role, res.access_token || res.token);
+    }
   });
 
   let phoneOtpTimer = null;
@@ -551,14 +552,14 @@
     }, 1000);
   }
   function clearPhoneOtpTimer() { if (phoneOtpTimer) { clearInterval(phoneOtpTimer); phoneOtpTimer = null; } }
-  btnResendPhoneOtp.addEventListener('click', () => {
-    if (btnResendPhoneOtp.disabled) return;
-    LV.toast('Đã gửi lại SMS mã xác thực (demo): 123456', 'info');
+  btnResendPhoneOtp.addEventListener('click', async () => {
+    if (btnResendPhoneOtp.disabled || !activePhone) return;
+    await requestBackendOtp(activePhone, 'phone');
     startPhoneOtpCooldown();
   });
 
   /* ---------------- Register form ---------------- */
-  document.getElementById('register-form').addEventListener('submit', (e) => {
+  document.getElementById('register-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('reg-name');
     const email = document.getElementById('reg-email');
@@ -583,8 +584,31 @@
 
     if (!ok) return;
 
-    LV.addRegisteredEmail(email.value.trim());
-    loginSuccess(name.value.trim(), email.value.trim(), 'backer');
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: name.value.trim(),
+          email: email.value.trim(),
+          phone: phone.value.trim(),
+          password: password.value,
+          role: 'backer'
+        })
+      });
+      const data = await res.json();
+
+      if (res.ok && (data.access_token || data.token)) {
+        const token = data.access_token || data.token;
+        localStorage.setItem('lv_token', token);
+        loginSuccess(name.value.trim(), email.value.trim(), 'backer', token);
+      } else {
+        LV.toast(data.detail || 'Đăng ký thất bại.', 'error');
+      }
+    } catch (err) {
+      console.error('Đăng ký error:', err);
+      LV.toast('Lỗi đăng ký tài khoản.', 'error');
+    }
   });
 </script>
 </body>

@@ -18,6 +18,17 @@ class Settings:
     
     DATABASE_URL: str = os.getenv("DATABASE_URL", "") # Empty defaults to hybrid store
     
+    # SMTP Gmail Email Settings
+    SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", 587))
+    SMTP_USER: str = os.getenv("SMTP_USER", "")         # Ví dụ: localvest.app@gmail.com
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "") # Mật khẩu ứng dụng Gmail (16 ký tự)
+    SMTP_FROM_NAME: str = "LocalVest System"
+
+    # OTP & Environment Settings
+    OTP_PROVIDER: str = os.getenv("OTP_PROVIDER", "mock")  # 'mock' hoặc 'real'
+    ENV: str = os.getenv("ENV", "dev")                     # 'dev', 'test', 'prod'
+
     CORS_ORIGINS: list = ["*"]
 
 settings = Settings()
