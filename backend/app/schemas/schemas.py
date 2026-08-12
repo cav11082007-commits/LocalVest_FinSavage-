@@ -42,6 +42,7 @@ class MoMoWebhookSchema(BaseModel):
     amount: float
     backerName: Optional[str] = "Backer Ẩn Danh"
     gatewayTxnId: Optional[str] = None
+    signature: str = ""
 
 class AdminApproveSchema(BaseModel):
     projectId: str
