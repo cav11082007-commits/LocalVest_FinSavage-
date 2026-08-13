@@ -88,7 +88,7 @@ LocalVest/
 
 ---
 
-## HƯỚNG DẪN KHỞI CHẠY HỆ THỐNG
+## HƯỚNG DẪN KHỞI CHẠY HỆ THỐNG - Scripts
 ```command prompt
 clone https://github.com/cav11082007-commits/LocalVest_FinSavage-.git
 cd LocalVest
