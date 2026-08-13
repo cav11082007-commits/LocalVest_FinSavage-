@@ -6,6 +6,18 @@ Strict Data Schemas & API Contract Definitions
 from pydantic import BaseModel
 from typing import List, Optional
 
+class SendOTPSchema(BaseModel):
+    identifier: Optional[str] = None
+    phone_or_email: Optional[str] = None
+    type: Optional[str] = None
+
+class VerifyOTPSchema(BaseModel):
+    identifier: Optional[str] = None
+    phone_or_email: Optional[str] = None
+    type: Optional[str] = None
+    otp: Optional[str] = None
+    code: Optional[str] = None
+
 class RegisterSchema(BaseModel):
     email: str
     password: str

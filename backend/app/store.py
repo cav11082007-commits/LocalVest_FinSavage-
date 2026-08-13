@@ -105,5 +105,6 @@ class LocalVestStore:
             }
         ]
         self.kyc_docs: List[Dict[str, Any]] = []
+        self.otp_store: Dict[str, Any] = {}
 
 store = LocalVestStore()
