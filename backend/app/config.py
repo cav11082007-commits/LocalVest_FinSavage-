@@ -29,6 +29,7 @@ class Settings:
     OTP_PROVIDER: str = os.getenv("OTP_PROVIDER", "mock")  # 'mock' hoặc 'real'
     ENV: str = os.getenv("ENV", "dev")                     # 'dev', 'test', 'prod'
 
+    DEFAULT_ADMIN_PASSWORD: str = os.getenv("DEFAULT_ADMIN_PASSWORD", "Admin123@gmail.com")
     CORS_ORIGINS: list = ["*"]
 
 settings = Settings()
