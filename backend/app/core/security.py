@@ -1,13 +1,21 @@
-"""
-LocalVest Core Security & Authentication Utilities (RBAC Middleware)
-Dành cho Linh (Core IT Developer) — Task 1 Module Auth
-"""
+
 
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List
 from jose import jwt, JWTError
 from fastapi import HTTPException, Header, Depends
+from passlib.context import CryptContext
 from app.config import settings
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    if not hashed_password:
+        return False
+    return pwd_context.verify(plain_password, hashed_password)
 
 def create_access_token(user_id: str, email: str, role: str) -> str:
     """Sinh JWT Access Token mã hóa thông tin user_id, email, role và thời gian hết hạn."""

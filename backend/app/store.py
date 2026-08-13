@@ -6,6 +6,8 @@ Architected by Senior Backend Architect for 0-Cost Student Deployment.
 import math
 from typing import Dict, List, Any
 from datetime import datetime
+from app.core.security import hash_password
+from app.config import settings
 
 def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Calculates 3-5km radius distance using Haversine formula."""
@@ -23,7 +25,13 @@ class LocalVestStore:
             {
                 "id": "usr_admin",
                 "email": "admin@localvest.vn",
+                # Email phụ cùng trỏ về 1 tài khoản admin duy nhất (usr_admin).
+                # Đăng nhập bằng bất kỳ email nào trong danh sách này đều là CÙNG 1 user,
+                # dùng chung dữ liệu, chung lịch sử duyệt dự án/giải ngân...
+                "alt_emails": ["admin@gmail.com"],
                 "full_name": "System Admin",
+                # Dùng chung 1 nguồn duy nhất với config.py để tránh lệch mật khẩu
+                "password_hash": hash_password(settings.DEFAULT_ADMIN_PASSWORD),
                 "role": "admin",
                 "kyc_status": "approved",
                 "is_locked": False,
@@ -33,6 +41,7 @@ class LocalVestStore:
                 "id": "usr_demo",
                 "email": "demo@localvest.vn",
                 "full_name": "Nguyễn Văn Demo",
+                "password_hash": hash_password("Demo@1234"),
                 "role": "backer",
                 "kyc_status": "approved",
                 "is_locked": False,
@@ -106,5 +115,21 @@ class LocalVestStore:
         ]
         self.kyc_docs: List[Dict[str, Any]] = []
         self.otp_store: Dict[str, Any] = {}
+
+    def find_user_by_identifier(self, target: str):
+        """
+        Tra cứu user theo email chính, email phụ (alt_emails), hoặc số điện thoại.
+        Dùng hàm này thay vì so sánh trực tiếp u["email"] để các tài khoản có
+        nhiều email (như admin) luôn được nhận diện là CÙNG 1 user duy nhất.
+        """
+        target = (target or "").strip().lower()
+        for u in self.users:
+            if u["email"].lower() == target:
+                return u
+            if target in [e.lower() for e in u.get("alt_emails", [])]:
+                return u
+            if u.get("phone") == target:
+                return u
+        return None
 
 store = LocalVestStore()
