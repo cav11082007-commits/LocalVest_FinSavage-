@@ -2,9 +2,13 @@
 LocalVest Pydantic Data Transfer Objects (DTOs)
 Strict Data Schemas & API Contract Definitions
 """
-
-from pydantic import BaseModel
+import re
+from pydantic import BaseModel, field_validator
 from typing import List, Optional
+
+PASSWORD_REGEX = re.compile(
+    r"^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*(),.?\":{}|<>_\-+=~`\[\];'])[\S]{8,}$"
+)
 
 class SendOTPSchema(BaseModel):
     identifier: Optional[str] = None
@@ -17,12 +21,21 @@ class VerifyOTPSchema(BaseModel):
     type: Optional[str] = None
     otp: Optional[str] = None
     code: Optional[str] = None
+    password: Optional[str] = None
 
 class RegisterSchema(BaseModel):
     email: str
     password: str
     full_name: str
+    phone: Optional[str] = ""
     role: Optional[str] = "backer"
+
+    @field_validator("password")
+    @classmethod
+    def check_password_strength(cls, v: str) -> str:
+        if not PASSWORD_REGEX.match(v):
+            raise ValueError("Mật khẩu phải có tối thiểu 8 ký tự, gồm chữ hoa, chữ thường và ký tự đặc biệt.")
+        return v
 
 class LoginSchema(BaseModel):
     email: str
@@ -63,3 +76,4 @@ class AdminApproveSchema(BaseModel):
 class AdminReleaseMilestoneSchema(BaseModel):
     projectId: str
     milestoneId: str
+ 

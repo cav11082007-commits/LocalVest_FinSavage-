@@ -289,7 +289,7 @@ const LV = (function () {
 
   function isAdmin() {
     const u = getUser();
-    return u && (u.role === 'admin' || u.email === 'admin@gmail.com');
+    return u && u.role === 'admin';
   }
 
   function requireLogin() {
