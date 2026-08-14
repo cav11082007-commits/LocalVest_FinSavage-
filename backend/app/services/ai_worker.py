@@ -33,8 +33,6 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 import imagehash
  
 from app.store import store
-<<<<<<< HEAD
-
 async def async_ai_flag_checker(project_id: str, name: str, description: str):
     """Simulates zero-cost background NLP & reverse-image fraud check."""
     await asyncio.sleep(1)  # Non-blocking async sleep
@@ -57,12 +55,6 @@ async def async_ai_flag_checker(project_id: str, name: str, description: str):
     }
     store.ai_flags.append(flag)
     print(f"[AI-Flag Worker] Checked Project {project_id} | Score: {fraud_score}%")
-
-
-
-
-=======
- 
 # ==========================================
 # LOGGING
 # ==========================================
