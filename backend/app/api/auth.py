@@ -97,16 +97,17 @@ def send_otp(data: SendOTPSchema):
         send_sms_otp(target, otp_code)
  
     # 7. Response JSON chuẩn API contract
-    return {
+    response = {
         "status": "success",
         "message": "Đã tạo mã OTP thành công",
         "identifier": target,
-        "otp": otp_code,
-        # Trả thêm các trường phụ để giữ tương thích với các caller khác
         "target": target,
         "sent_via": otp_type,
-        "mock_otp": otp_code
     }
+    if settings.ENV != "prod":
+        response["otp"] = otp_code
+        response["mock_otp"] = otp_code
+    return response
  
 @router.post("/verify-otp")
 def verify_otp(data: VerifyOTPSchema):

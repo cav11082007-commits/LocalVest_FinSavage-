@@ -286,9 +286,9 @@
   termsModal.addEventListener('click', (e) => { if (e.target === termsModal) termsModal.classList.remove('open'); });
 
   /* ---------------- Đăng nhập thành công dùng chung ---------------- */
-  function loginSuccess(name, email, role) {
-    const userRole = role || 'backer';   // chỉ tin role thật từ backend, không đoán theo email
-    LV.setUser({ name: name || email.split('@')[0], email, role: userRole });
+  function loginSuccess(name, email, role, token) {
+    const userRole = role || 'backer';
+    LV.setUser({ name: name || email.split('@')[0], email, role: userRole, token });
     LV.toast('Đăng nhập thành công, đang chuyển hướng...', 'success');
     setTimeout(() => {
       window.location.href = userRole === 'admin' ? 'admin.html' : 'home.html';
@@ -326,18 +326,16 @@
 
       if (res.ok) {
         const otpCode = data.otp || data.mock_otp;
-        const msg = `🔔 Mã xác thực OTP của bạn là: ${otpCode}`;
-        LV.toast(msg, 'info', 8000);
-
-        // Auto-fill OTP field if convenience
-        if (type === 'email') {
-          const el = document.getElementById('login-otp');
+        if (otpCode) {
+          // Chỉ hiện + auto-fill khi backend trả OTP thật (ENV dev/test)
+          LV.toast(`Mã xác thực OTP của bạn là: ${otpCode}`, 'info', 8000);
+          const el = document.getElementById(type === 'email' ? 'login-otp' : 'login-phone-otp');
           if (el) el.value = otpCode;
         } else {
-          const el = document.getElementById('login-phone-otp');
-          if (el) el.value = otpCode;
+          // Prod: không có OTP trong response, chỉ báo đã gửi
+          LV.toast(type === 'email' ? 'Đã gửi mã OTP đến email của bạn.' : 'Đã gửi mã OTP qua SMS.', 'success');
         }
-        return otpCode;
+        return otpCode || true;  // return truthy để luồng chuyển bước vẫn chạy dù không có mã
       }
 
       LV.toast(data.detail || 'Không thể gửi mã OTP. Vui lòng kiểm tra lại!', 'error');

@@ -672,4 +672,3 @@ async def async_ai_flag_checker(
    Xem chi tiết tham số/kết quả tại `FraudFlagWorker.check_project`.
    """
    return await _default_worker.check_project(project_id, name, description, image_path)
->>>>>>> develop
