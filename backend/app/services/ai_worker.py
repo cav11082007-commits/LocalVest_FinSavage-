@@ -27,11 +27,15 @@ import unicodedata
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
- 
-from PIL import Image, ImageOps, UnidentifiedImageError
-import imagehash
- 
+try:
+    from PIL import Image, ImageOps, UnidentifiedImageError
+    import imagehash
+except ImportError:
+    Image = None
+    ImageOps = None
+    UnidentifiedImageError = Exception
+    imagehash = None
+
 from app.store import store
 # ==========================================
 # LOGGING
