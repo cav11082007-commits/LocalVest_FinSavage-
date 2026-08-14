@@ -237,6 +237,7 @@ def register(data: RegisterSchema):
  
 @router.post("/login")
 def login(data: LoginSchema):
+    """Login Function (Format,.... )"""
     target = data.email.strip().lower()
     user = store.find_user_by_identifier(target)
  

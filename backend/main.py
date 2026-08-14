@@ -1,7 +1,5 @@
 """
 LocalVest Backend — Enterprise Modular Python FastAPI Application
-Architected by Senior Backend Architect for 0-Cost MVP Student Deployment.
-Branch: testv1
 """
 
 import os
@@ -15,7 +13,7 @@ from app.api import auth, campaigns, payments, location, ai_flag, admin
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    description="Backend API hệ thống gọi vốn cộng đồng minh bạch LocalVest (MVP Vòng 2 - Nhánh testv1)",
+    description="Backend API hệ thống gọi vốn cộng đồng minh bạch LocalVest",
     version=settings.VERSION,
     docs_url="/docs",
     redoc_url="/redoc"

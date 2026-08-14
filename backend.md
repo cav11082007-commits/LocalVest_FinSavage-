@@ -1,18 +1,3 @@
-# 📖 HƯỚNG DẪN KHỞI CHẠY HỆ THỐNG BACKEND & THAM CHUYỂN API (NHÁNH TESTV1)
-
-> ⚠️ **GHI CHÚ CỰC KỲ QUAN TRỌNG VỀ ĐƯỜNG DẪN LINK**:
-> Nhiều bạn khi bấm vào link `http://127.0.0.1:8000/docs` hoặc `ws://127.0.0.1:8000/ws/live-feed` trên tài liệu sẽ bị báo **"Không thể kết nối / Trang web không hoạt động"**.
-> 
-> **LÝ DO**: Vì **Server Python chưa được bật trên máy bạn**! Trình duyệt web không thể mở một địa chỉ IP nội bộ (`127.0.0.1`) nếu chưa có chương trình Python nào lắng nghe ở cổng `8000`.
-> 
-> **CÁCH XỬ LÝ (CHỈ 1 BƯỚC ĐƠN GIẢN)**:
-> Mở Terminal (Command Prompt / VS Code Terminal) tại thư mục dự án `LocalVest` và gõ lệnh:
-> ```bash
-> python run.py
-> ```
-> Ngay sau khi gõ lệnh này:
-> 1. Server Python sẽ khởi động và tự động mở trình duyệt tới Swagger Docs và Web Frontend.
-> 2. Các link `http://127.0.0.1:8000/docs` và `ws://127.0.0.1:8000/ws/live-feed` sẽ hoạt động bình thường!
 
 ---
 
@@ -27,7 +12,7 @@
 
 ---
 
-## 🛠️ CẤU TRÚC 8 DỊCH VỤ TRÊN NHÁNH TESTV1
+## 🛠️ CẤU TRÚC 8 DỊCH VỤ TRÊN NHÁNH 
 
 1. **Auth & User Service**: `/api/auth/register`, `/api/auth/login`, `/api/auth/kyc-upload`
 2. **Campaign Service**: `/api/campaigns` (State machine `pending_review` ➔ `active` ➔ `funded`)
