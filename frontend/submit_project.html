@@ -535,7 +535,7 @@
     if (!validateStep3()) return;
 
     const queue = LV.getQueue();
-    const user = LV.getUser();
+    const user = LV.getUser()?.token;
     queue.push({
       id: LV.uid('sub'),
       projectName: document.getElementById('f-name').value.trim(),
