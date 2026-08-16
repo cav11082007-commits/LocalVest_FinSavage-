@@ -54,8 +54,24 @@
     }
   }
 
+  let allProjects = [];
+
+  async function loadProjects(lat, lng) {
+    if (lat && lng) {
+      allProjects = await LV.getNearbyCampaigns(lat, lng, 5.0);
+      if (!allProjects || allProjects.length === 0) {
+        LV.toast('Không tìm thấy dự án lân cận 5km. Đang hiển thị tất cả dự án', 'warning');
+        allProjects = await LV.getCampaigns();
+      }
+    } else {
+      allProjects = await LV.getCampaigns();
+    }
+    renderGrid();
+  }
+
   function statusBadge(p) {
-    const pct = Math.round((p.raised / p.target) * 100);
+    const pct = Math.round((p.raised_amount / p.target_amount) * 100);
+    if (p.status === 'pending_review') return `<span class="badge badge-warning">Đang chờ duyệt</span>`;
     if (p.fraudFlag) return `<span class="badge badge-danger">⚠ Đang xác minh</span>`;
     if (pct >= 100) return `<span class="badge badge-success">Đã đạt mục tiêu</span>`;
     return `<span class="badge badge-primary">${p.category}</span>`;
@@ -63,7 +79,8 @@
 
   function renderGrid() {
     const grid = document.getElementById('project-grid');
-    let projects = LV.getProjects().filter((p) => p.status === 'active');
+    // Hiển thị tất cả dự án (cả đang chờ duyệt) theo yêu cầu của user
+    let projects = allProjects.slice();
     if (currentFilter !== 'all') projects = projects.filter((p) => p.category === currentFilter);
     projects.sort((a, b) => (a.distanceKm || 99) - (b.distanceKm || 99));
 
@@ -73,8 +90,8 @@
     }
 
     grid.innerHTML = projects.map((p) => {
-      const pct = Math.min(100, Math.round((p.raised / p.target) * 100));
-      const dist = locationGranted ? `Cách bạn ${p.distanceKm.toFixed(1)}km` : '--';
+      const pct = Math.min(100, Math.round((p.raised_amount / p.target_amount) * 100));
+      const dist = p.distanceKm !== undefined ? `Cách bạn ${p.distanceKm.toFixed(1)}km` : '--';
       return `
       <a class="project-card" href="project.html?id=${p.id}">
         <div class="project-cover ${p.cover}">${p.icon}</div>
@@ -84,11 +101,11 @@
             <span class="text-sm text-muted">📍 ${dist}</span>
           </div>
           <div class="project-name">${p.name}</div>
-          <div class="text-sm text-muted">${p.location}</div>
+          <div class="text-sm text-muted">${p.location_name || p.location || 'Không rõ'}</div>
           <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
           <div class="project-progress-row">
-            <span class="project-amount">${LV.formatVND(p.raised)}</span>
-            <span>${pct}% / ${LV.formatVND(p.target)}</span>
+            <span class="project-amount">${LV.formatVND(p.raised_amount)}</span>
+            <span>${pct}% / ${LV.formatVND(p.target_amount)}</span>
           </div>
         </div>
       </a>`;
@@ -106,33 +123,44 @@
     });
   });
 
-  document.getElementById('refresh-btn').addEventListener('click', () => {
-    LV.toast('Đã làm mới danh sách dự án', 'success');
-    renderGrid();
+  document.getElementById('refresh-btn').addEventListener('click', async () => {
+    LV.toast('Đang tải dữ liệu...', 'info');
+    if (locationGranted) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => loadProjects(pos.coords.latitude, pos.coords.longitude),
+        () => loadProjects()
+      );
+    } else {
+      await loadProjects();
+    }
   });
 
   // Pull-to-refresh (chạm kéo xuống ở đầu trang trên thiết bị cảm ứng)
   let touchStartY = null;
   window.addEventListener('touchstart', (e) => { if (window.scrollY === 0) touchStartY = e.touches[0].clientY; });
-  window.addEventListener('touchend', (e) => {
+  window.addEventListener('touchend', async (e) => {
     if (touchStartY !== null && e.changedTouches[0].clientY - touchStartY > 80) {
-      LV.toast('Đã làm mới danh sách dự án', 'success');
-      renderGrid();
+      LV.toast('Đang tải dữ liệu...', 'info');
+      await loadProjects();
     }
     touchStartY = null;
   });
 
-  renderBanner('loading');
-  if ('geolocation' in navigator) {
-    navigator.geolocation.getCurrentPosition(
-      () => { locationGranted = true; renderBanner('granted'); renderGrid(); },
-      () => { locationGranted = false; renderBanner('denied'); renderGrid(); },
-      { timeout: 5000 }
-    );
-  } else {
-    renderBanner('denied');
+  async function init() {
+    renderBanner('loading');
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => { locationGranted = true; renderBanner('granted'); loadProjects(pos.coords.latitude, pos.coords.longitude); },
+        () => { locationGranted = false; renderBanner('denied'); loadProjects(); },
+        { timeout: 5000 }
+      );
+    } else {
+      renderBanner('denied');
+      loadProjects();
+    }
   }
-  renderGrid();
+
+  init();
 </script>
 </body>
 </html>

@@ -10,7 +10,8 @@ router = APIRouter(prefix="/location", tags=["4. Location Service"])
 @router.get("/nearby")
 def get_nearby_projects(lat: float = 10.7769, lng: float = 106.7009, radius_km: float = 5.0):
     nearby = []
-    for p in store.projects:
+    projects = store.get_projects()
+    for p in projects:
         dist = haversine_km(lat, lng, p["lat"], p["lng"])
         if dist <= radius_km:
             p_copy = dict(p)

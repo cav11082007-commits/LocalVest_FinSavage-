@@ -648,7 +648,7 @@ class FraudFlagWorker:
            flag: Dict kết quả đã tổng hợp, sẵn sàng để lưu.
        """
        try:
-           store.ai_flags.append(flag)
+           store.set_ai_flag(flag)
        except Exception:
            logger.exception(
                "AI-Flag Worker: lỗi khi ghi flag '%s' (project '%s') vào store.",
