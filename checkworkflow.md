@@ -37,7 +37,7 @@
                                                 │
                                                 ▼ Trả về danh sách dự án gần đây
                                     [frontend/home.html] (Hiển thị UI Danh sách / Bản đồ)
-4. LUỒNG ĐĂNG DỰ ÁN & KIỂM TRA PHÁT HIỆN GIAN LẬN AI (AI FRAUD SCREENING)
+4. LUỒNG ĐĂNG DỰ ÁN & KIỂM TRA PHÁT HIỆN GIAN LẬN AI (AI FRAUD DETECTION)
 ------------------------------------------------------------------------------------------------------------------------
 [frontend/submit_project.html] ──(Gửi Form)──► [frontend/js/app.js]
                                                      │

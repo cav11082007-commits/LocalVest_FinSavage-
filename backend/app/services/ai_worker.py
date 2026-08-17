@@ -1,7 +1,7 @@
 """
-LocalVest Async AI-Flag Fraud Detection Worker (Professional Edition)
+LocalVest Async AI-Flag Fraud Detection Worker
 ======================================================================
-Chạy nền (non-blocking) để quét:
+Chạy nền để quét:
  1. NLP anomaly scan trên mô tả dự án (né tránh bằng khoảng trắng,
     dấu câu, leetspeak, phủ định...).
  2. Reverse-image / duplicate check bằng Perceptual Hashing (pHash),
@@ -18,7 +18,7 @@ của nó, để một lỗi cục bộ (VD: ảnh hỏng, path sai) không bao 
 crash worker chạy nền — tệ nhất chỉ làm giảm chất lượng của MỘT lần quét,
 không làm mất toàn bộ hàng đợi (queue) đang xử lý phía sau.
 """
-from __future__ import annotations
+from __future__ import annotations 
  
 import asyncio
 import logging
@@ -27,15 +27,9 @@ import unicodedata
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-try:
-    from PIL import Image, ImageOps, UnidentifiedImageError
-    import imagehash
-except ImportError:
-    Image = None
-    ImageOps = None
-    UnidentifiedImageError = Exception
-    imagehash = None
-
+from typing import Optional
+from PIL import Image, ImageOps, UnidentifiedImageError
+import imagehash
 from app.store import store
 # ==========================================
 # LOGGING
@@ -52,7 +46,7 @@ logger = logging.getLogger("localvest.ai_flag_worker")
 # CẤU HÌNH NGƯỠNG & TRỌNG SỐ (CÓ THỂ TINH CHỈNH THÊM)
 # ==========================================
 PHASH_DUPLICATE_THRESHOLD = 8  # Hamming distance <= ngưỡng này -> coi là trùng
-BASE_FRAUD_SCORE = 5           # Điểm nền mặc định cho mọi project
+BASE_FRAUD_SCORE = 0      # Điểm nền mặc định cho mọi project
 MAX_FRAUD_SCORE = 100
 SUSPICIOUS_THRESHOLD = 50      # fraud_score > ngưỡng này -> is_suspicious = True
 IMAGE_DUPLICATE_PENALTY = 40
