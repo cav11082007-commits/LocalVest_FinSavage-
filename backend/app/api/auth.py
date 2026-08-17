@@ -225,7 +225,7 @@ def register(data: RegisterSchema):
         "is_locked": False,
         "created_at": datetime.now().isoformat()
     }
-    store.users.append(new_user)
+    store.create_user(new_user)
     token = create_access_token(new_user["id"], new_user["email"], new_user["role"])
     safe_user = {k: v for k, v in new_user.items() if k != "password_hash"}
     return {
@@ -269,6 +269,6 @@ def upload_kyc(data: KYCUploadSchema, current_user: dict = Depends(get_current_u
         "status": "pending",
         "submitted_at": datetime.now().isoformat()
     }
-    store.kyc_docs.append(record)
+    store.create_kyc_doc(record)
     return {"message": "Tải lên hồ sơ KYC thành công. Đang chờ Admin duyệt.", "kyc": record}
  

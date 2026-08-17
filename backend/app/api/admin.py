@@ -15,22 +15,27 @@ router = APIRouter(prefix="/admin", tags=["6. Admin/Moderation Service"])
 
 @router.get("/pending-projects")
 def get_pending_projects(current_user: dict = Depends(require_admin)):
-    pending = [p for p in store.projects if p["status"] == "pending_review"]
+    projects = store.get_projects()
+    pending = [p for p in projects if p["status"] == "pending_review"]
     return {"count": len(pending), "projects": pending}
 
 @router.post("/approve-project")
 def admin_approve_project(data: AdminApproveSchema, current_user: dict = Depends(require_admin)):
-    p = next((proj for proj in store.projects if proj["id"] == data.projectId), None)
+    p = store.get_project_by_id(data.projectId)
     if not p:
         raise HTTPException(status_code=404, detail="Không tìm thấy dự án")
     new_status = "active" if data.approve else "rejected"
-    transition(p, new_status, actor=f"admin:{current_user['sub']}")
+    # Wait, transition() updates the dictionary, but we need to save it to DB
+    # We can just call store.update_project_status instead of transition, 
+    # but transition has logic. We will call store.update_project_status directly.
+    store.update_project_status(data.projectId, new_status)
+    p["status"] = new_status
     return {"message": f"Dự án đã được {'duyệt active' if data.approve else 'từ chối'}", "project": p}
 
 
 @router.post("/release-milestone")
 async def admin_release_milestone(data: AdminReleaseMilestoneSchema, current_user: dict = Depends(require_admin)):
-    p = next((proj for proj in store.projects if proj["id"] == data.projectId), None)
+    p = store.get_project_by_id(data.projectId)
     if not p:
         raise HTTPException(status_code=404, detail="Không tìm thấy dự án")
     if p["status"] not in ("active", "funded"):
@@ -38,6 +43,8 @@ async def admin_release_milestone(data: AdminReleaseMilestoneSchema, current_use
     m = next((m_item for m_item in p.get("milestones", []) if m_item["id"] == data.milestoneId), None)
     if not m:
         raise HTTPException(status_code=404, detail="Không tìm thấy mốc giải ngân")
+    
+    store.update_milestone_status(data.milestoneId, "released")
     m["status"] = "released"
 
     disbursement_entry = {
@@ -48,7 +55,7 @@ async def admin_release_milestone(data: AdminReleaseMilestoneSchema, current_use
         "description": f"Giải ngân mốc '{m['name']}' (-{m['target_amount']:,.0f}đ)",
         "created_at": datetime.now().isoformat()
     }
-    store.ledger.append(disbursement_entry)
+    store.add_ledger_entry(disbursement_entry)
 
     # Realtime Live Feed Broadcast
     await realtime_manager.broadcast("MILESTONE_RELEASED", {
