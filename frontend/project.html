@@ -28,91 +28,139 @@
   LV.requireLogin();
   LV.renderNavbar('home');
 
-  const params = new URLSearchParams(window.location.search);
-  const project = LV.getProject(params.get('id'));
-  const root = document.getElementById('project-root');
+  async function init() {
+    const params = new URLSearchParams(window.location.search);
+    const projectId = params.get('id');
+    const root = document.getElementById('project-root');
 
-  if (!project) {
-    root.innerHTML = `<div class="card card-pad text-center">
-      <p class="text-muted">Không tìm thấy dự án này.</p>
-      <a class="btn btn-primary mt-16" href="home.html">Về trang khám phá</a>
-    </div>`;
-  } else {
-    const pct = Math.min(100, Math.round((project.raised / project.target) * 100));
-    const backers = LV.getLedger(project.id).filter((e) => e.type === 'in').length;
+    if (!projectId) {
+      root.innerHTML = `<div class="card card-pad text-center">
+        <p class="text-muted">Không tìm thấy dự án này.</p>
+        <a class="btn btn-primary mt-16" href="home.html">Về trang khám phá</a>
+      </div>`;
+      return;
+    }
 
-    const milestoneHtml = project.milestones.map((m, i) => {
-      const statusMap = {
-        released: { cls: 'done', label: 'Đã giải ngân', dot: '✓' },
-        pending: { cls: 'active', label: 'Chờ giải ngân', dot: i + 1 },
-        locked: { cls: '', label: 'Đang khoá', dot: i + 1 },
-      };
-      const s = statusMap[m.status] || statusMap.locked;
-      return `
-        <div class="timeline-item ${s.cls}" onclick="this.classList.toggle('open')">
-          <div class="timeline-dot">${s.dot}</div>
-          <div class="timeline-card">
-            <div class="timeline-head">
-              <div class="timeline-title">${m.name}</div>
-              <span class="badge ${m.status === 'released' ? 'badge-success' : m.status === 'pending' ? 'badge-warning' : 'badge-neutral'}">${s.label}</span>
+    const project = await LV.getCampaignDetail(projectId);
+
+    if (!project) {
+      root.innerHTML = `<div class="card card-pad text-center">
+        <p class="text-muted">Không tìm thấy dự án này.</p>
+        <a class="btn btn-primary mt-16" href="home.html">Về trang khám phá</a>
+      </div>`;
+    } else {
+      const pct = Math.min(100, Math.round((project.raised_amount / project.target_amount) * 100));
+      const ledger = await LV.getLedger(project.id);
+      const backers = ledger.filter((e) => e.type === 'in').length;
+
+      const milestoneHtml = project.milestones.map((m, i) => {
+        const statusMap = {
+          released: { cls: 'done', label: 'Đã giải ngân', dot: '✓' },
+          pending: { cls: 'active', label: 'Chờ giải ngân', dot: i + 1 },
+          locked: { cls: '', label: 'Đang khoá', dot: i + 1 },
+        };
+        const s = statusMap[m.status] || statusMap.locked;
+        return `
+          <div class="timeline-item ${s.cls}" onclick="this.classList.toggle('open')">
+            <div class="timeline-dot">${s.dot}</div>
+            <div class="timeline-card">
+              <div class="timeline-head">
+                <div class="timeline-title">${m.name}</div>
+                <span class="badge ${m.status === 'released' ? 'badge-success' : m.status === 'pending' ? 'badge-warning' : 'badge-neutral'}">${s.label}</span>
+              </div>
+              <div class="timeline-amount">${LV.formatVND(m.target_amount || m.amount || 0)}</div>
+              <div class="timeline-detail">${m.description || m.desc || ''}</div>
             </div>
-            <div class="timeline-amount">${LV.formatVND(m.amount)}</div>
-            <div class="timeline-detail">${m.desc}</div>
-          </div>
-        </div>`;
-    }).join('');
+          </div>`;
+      }).join('');
 
-    root.innerHTML = `
-      <a href="home.html" class="text-sm text-muted">← Quay lại khám phá</a>
-      <div class="detail-cover ${project.cover}" style="margin-top:16px;">${project.icon}</div>
+      root.innerHTML = `
+        <a href="home.html" class="text-sm text-muted">← Quay lại khám phá</a>
+        <div class="detail-cover ${project.cover}" style="margin-top:16px;">${project.icon}</div>
 
-      <div class="detail-layout">
-        <div>
-          ${project.fraudFlag ? `<div class="banner banner-danger">⚠ Dự án đang được hệ thống AI đánh dấu nghi vấn (${project.fraudFlag.score}%): ${project.fraudFlag.reason}. Đội ngũ LocalVest đang xác minh thêm.</div>` : ''}
+        <div class="detail-layout">
+          <div>
+            ${project.status === 'pending_review' ? `<div class="banner banner-warning">⚠ Dự án này đang chờ đội ngũ Admin phê duyệt trước khi gọi vốn.</div>` : ''}
+            ${project.fraudFlag ? `<div class="banner banner-danger">⚠ Dự án đang được hệ thống AI đánh dấu nghi vấn (${project.fraudFlag.score}%): ${project.fraudFlag.reason}. Đội ngũ LocalVest đang xác minh thêm.</div>` : ''}
 
-          <div class="flex items-center gap-8 mb-16" style="flex-wrap:wrap;">
-            <span class="badge badge-primary">${project.category}</span>
-            <span class="text-sm text-muted">📍 ${project.location} · Cách bạn ${project.distanceKm.toFixed(1)}km</span>
-          </div>
-          <h1 class="page-title" style="margin-bottom:16px;">${project.name}</h1>
-
-          <div class="creator-row mb-16">
-            <div class="nav-avatar">${LV.initials(project.creatorName)}</div>
-            <div style="flex:1;">
-              <div style="font-weight:600; font-size:14px;">${project.creatorName}</div>
-              <div class="text-sm text-muted">Người sáng lập dự án</div>
+            <div class="flex items-center gap-8 mb-16" style="flex-wrap:wrap;">
+              <span class="badge badge-primary">${project.category}</span>
+              <span class="text-sm text-muted">📍 ${project.location_name || project.location || 'Không rõ'}</span>
             </div>
-            ${project.creatorVerified
-              ? `<span class="badge badge-success">✓ Đã xác minh CCCD</span>`
-              : `<span class="badge badge-warning">Đang chờ xác minh</span>`}
+            <h1 class="page-title" style="margin-bottom:16px;">${project.name}</h1>
+
+            <div class="creator-row mb-16">
+              <div class="nav-avatar">${LV.initials(project.creator_name || project.creatorName)}</div>
+              <div style="flex:1;">
+                <div style="font-weight:600; font-size:14px;">${project.creator_name || project.creatorName}</div>
+                <div class="text-sm text-muted">Người sáng lập dự án</div>
+              </div>
+              ${project.creatorVerified
+                ? `<span class="badge badge-success">✓ Đã xác minh CCCD</span>`
+                : `<span class="badge badge-warning">Đang chờ xác minh</span>`}
+            </div>
+
+            <div class="card card-pad mb-16">
+              <div class="section-title">Giới thiệu dự án</div>
+              <p class="text-muted" style="line-height:1.7; margin:0; white-space:pre-wrap;">${project.description}</p>
+            </div>
+
+            <div class="card card-pad">
+              <div class="section-title">Lộ trình giải ngân theo mốc (Escrow)</div>
+              <p class="text-sm text-muted" style="margin-top:-6px;">Vốn được giữ trong tài khoản escrow và chỉ giải ngân từng phần khi dự án đạt các mốc minh bạch bên dưới. Nhấn vào từng mốc để xem chi tiết điều kiện.</p>
+              <div class="timeline mt-16">${milestoneHtml}</div>
+            </div>
           </div>
 
-          <div class="card card-pad mb-16">
-            <div class="section-title">Giới thiệu dự án</div>
-            <p class="text-muted" style="line-height:1.7; margin:0;">${project.description}</p>
-          </div>
-
-          <div class="card card-pad">
-            <div class="section-title">Lộ trình giải ngân theo mốc (Escrow)</div>
-            <p class="text-sm text-muted" style="margin-top:-6px;">Vốn được giữ trong tài khoản escrow và chỉ giải ngân từng phần khi dự án đạt các mốc minh bạch bên dưới. Nhấn vào từng mốc để xem chi tiết điều kiện.</p>
-            <div class="timeline mt-16">${milestoneHtml}</div>
+          <div class="donate-card card card-pad">
+            <div class="project-amount" id="ui-raised" style="font-size:22px;">${LV.formatVND(project.raised_amount)}</div>
+            <div class="text-sm text-muted mb-16">đã gọi được trên mục tiêu ${LV.formatVND(project.target_amount)}</div>
+            <div class="progress-track"><div class="progress-fill" id="ui-progress" style="width:${pct}%"></div></div>
+            <div class="flex justify-between text-sm text-muted mt-8 mb-16">
+              <span><span id="ui-pct">${pct}</span>% hoàn thành</span>
+              <span><span id="ui-backers">${backers}</span> lượt đóng góp</span>
+            </div>
+            <a class="btn btn-primary btn-block" href="checkout.html?id=${project.id}">Đóng góp ngay</a>
+            <a class="btn btn-outline btn-block mt-8" href="dashboard.html?id=${project.id}">Xem dòng tiền minh bạch</a>
           </div>
         </div>
+      `;
+    }
 
-        <div class="donate-card card card-pad">
-          <div class="project-amount" style="font-size:22px;">${LV.formatVND(project.raised)}</div>
-          <div class="text-sm text-muted mb-16">đã gọi được trên mục tiêu ${LV.formatVND(project.target)}</div>
-          <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
-          <div class="flex justify-between text-sm text-muted mt-8 mb-16">
-            <span>${pct}% hoàn thành</span>
-            <span>${backers} lượt đóng góp</span>
-          </div>
-          <a class="btn btn-primary btn-block" href="checkout.html?id=${project.id}">Đóng góp ngay</a>
-          <a class="btn btn-outline btn-block mt-8" href="dashboard.html?id=${project.id}">Xem dòng tiền minh bạch</a>
-        </div>
-      </div>
-    `;
+    window.addEventListener('LiveFeedUpdate', async (e) => {
+      if (project && e.detail.projectId === project.id) {
+        // Fetch updated project data to ensure consistency with backend SSOT
+        const p = await LV.getCampaignDetail(project.id);
+        if (!p) return;
+        
+        const raisedEl = document.getElementById('ui-raised');
+        const progEl = document.getElementById('ui-progress');
+        const pctEl = document.getElementById('ui-pct');
+        const backerEl = document.getElementById('ui-backers');
+        
+        if (raisedEl) raisedEl.innerHTML = LV.formatVND(p.raised_amount);
+        
+        const newPct = Math.min(100, Math.round((p.raised_amount / p.target_amount) * 100));
+        if (progEl) progEl.style.width = newPct + '%';
+        if (pctEl) pctEl.innerHTML = newPct;
+        
+        if (backerEl) {
+          const fetchedLedger = await LV.getLedger(project.id);
+          const backersCount = fetchedLedger.filter((x) => x.type === 'in').length;
+          backerEl.innerHTML = backersCount;
+        }
+        
+        const card = document.querySelector('.donate-card');
+        if (card) {
+          card.style.transition = 'box-shadow 0.5s ease';
+          card.style.boxShadow = '0 0 15px var(--color-primary-tint-10)';
+          setTimeout(() => { card.style.boxShadow = 'var(--shadow-sm)'; }, 1500);
+        }
+      }
+    });
   }
+
+  init();
 </script>
 </body>
 </html>

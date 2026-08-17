@@ -69,6 +69,14 @@ class MoMoWebhookSchema(BaseModel):
     gatewayTxnId: Optional[str] = None
     signature: str = ""
 
+class MockMoMoPaySchema(BaseModel):
+    projectId: str
+    amount: float
+    backerName: Optional[str] = "Backer Ẩn Danh"
+    projectName: Optional[str] = None
+    targetAmount: Optional[float] = None
+    currentRaised: Optional[float] = 0.0
+
 class AdminApproveSchema(BaseModel):
     projectId: str
     approve: bool

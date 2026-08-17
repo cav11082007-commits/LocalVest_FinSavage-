@@ -745,44 +745,86 @@
     document.getElementById('add-milestone').addEventListener('click', addMilestoneRow);
     addMilestoneRow();
 
-    // ---------- Điều hướng ----------
-    document.getElementById('btn-next').addEventListener('click', () => {
-      let valid = true;
-      if (step === 1) valid = validateStep1();
-      if (step === 2) {
-        valid = validateStep2();
-        document.getElementById('step2-required-error').classList.toggle('show', !valid);
-        if (!valid) markStep2RequiredErrors();
-      }
-      if (valid) goToStep(step + 1);
-    });
-    document.getElementById('btn-back').addEventListener('click', () => goToStep(step - 1));
-
-    document.getElementById('submit-form').addEventListener('submit', (e) => {
+    document.getElementById('submit-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!validateStep3()) return;
 
-      const queue = LV.getQueue();
-      const user = LV.getUser();
-      queue.push({
-        id: LV.uid('sub'),
-        projectName: document.getElementById('f-name').value.trim(),
-        creatorName: user ? user.name : 'Không rõ',
-        submittedAt: new Date().toISOString(),
-        status: 'pending',
-        fraudScore: Math.floor(Math.random() * 30), // dự án tự đăng ký demo: nguy cơ thấp mặc định
-        fraudReason: 'Không phát hiện dấu hiệu bất thường',
-        target: Number(document.getElementById('f-target').value),
-        description: document.getElementById('f-desc').value.trim(),
-        location: `${document.getElementById('f-ward').value}, ${document.getElementById('f-district').value}, ${document.getElementById('f-province').value}`,
-        milestones: readMilestones(),
-      });
-      LV.saveQueue(queue);
+      const submitBtn = document.getElementById('btn-submit');
+      const ogText = submitBtn.innerText;
+      submitBtn.innerText = 'Đang gửi...';
+      submitBtn.disabled = true;
 
-      submitted = true;
-      document.getElementById('register-card').classList.add('hidden');
-      document.getElementById('success-panel').classList.remove('hidden');
+      try {
+        const milestones = readMilestones().map(m => ({
+          name: m.name,
+          target_amount: m.amount,
+          description: m.desc
+        }));
+
+        const payload = {
+          name: document.getElementById('f-name').value.trim(),
+          category: 'Cộng đồng',
+          description: document.getElementById('f-desc').value.trim(),
+          location_name: `${document.getElementById('f-ward').value}, ${document.getElementById('f-district').value}, ${document.getElementById('f-province').value}`,
+          target_amount: Number(document.getElementById('f-target').value),
+          lat: LV.BASE_LAT + (Math.random() - 0.5) * 0.1,
+          lng: LV.BASE_LNG + (Math.random() - 0.5) * 0.1,
+          milestones: milestones
+        };
+
+        const user = LV.getUser();
+        const headers = {
+          'Content-Type': 'application/json'
+        };
+        if (user && user.token) {
+          headers['Authorization'] = `Bearer ${user.token}`;
+        }
+
+        const res = await fetch('/api/campaigns', {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          LV.toast(err.detail || 'Lỗi khi tạo dự án', 'error');
+          submitBtn.innerText = ogText;
+          submitBtn.disabled = false;
+          return;
+        }
+
+        submitted = true;
+        document.getElementById('register-card').classList.add('hidden');
+        document.getElementById('success-panel').classList.remove('hidden');
+      } catch (err) {
+        console.error(err);
+        LV.toast('Lỗi kết nối máy chủ', 'error');
+        submitBtn.innerText = ogText;
+        submitBtn.disabled = false;
+      }
     });
+
+    const queue = LV.getQueue();
+    const user = LV.getUser();
+    queue.push({
+      id: LV.uid('sub'),
+      projectName: document.getElementById('f-name').value.trim(),
+      creatorName: user ? user.name : 'Không rõ',
+      submittedAt: new Date().toISOString(),
+      status: 'pending',
+      fraudScore: Math.floor(Math.random() * 30), // dự án tự đăng ký demo: nguy cơ thấp mặc định
+      fraudReason: 'Không phát hiện dấu hiệu bất thường',
+      target: Number(document.getElementById('f-target').value),
+      description: document.getElementById('f-desc').value.trim(),
+      location: `${document.getElementById('f-ward').value}, ${document.getElementById('f-district').value}, ${document.getElementById('f-province').value}`,
+      milestones: readMilestones(),
+    });
+    LV.saveQueue(queue);
+
+    submitted = true;
+    document.getElementById('register-card').classList.add('hidden');
+    document.getElementById('success-panel').classList.remove('hidden');
 
     // Cảnh báo mất dữ liệu nếu thoát giữa chừng multi-step form (đề xuất bổ sung AC)
     function formHasInput() {

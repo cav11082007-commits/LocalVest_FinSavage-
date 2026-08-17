@@ -14,14 +14,31 @@ router = APIRouter(prefix="/campaigns", tags=["2. Campaign Service"])
 
 @router.get("")
 def get_campaigns():
-    return {"projects": store.projects}
+    return {"projects": store.get_projects()}
 
 @router.get("/{project_id}")
 def get_campaign_detail(project_id: str):
-    p = next((proj for proj in store.projects if proj["id"] == project_id), None)
+    p = store.get_project_by_id(project_id)
     if not p:
         raise HTTPException(status_code=404, detail="Không tìm thấy dự án")
     return {"project": p}
+
+@router.get("/{project_id}/ledger")
+def get_campaign_ledger(project_id: str):
+    ledger = store.get_ledger()
+    # Filter for this project
+    project_ledger = [e for e in ledger if e["project_id"] == project_id]
+    
+    # Map to frontend format
+    formatted = []
+    for e in project_ledger:
+        formatted.append({
+            "time": e["created_at"],
+            "amount": e["amount"],
+            "type": "in" if e["type"] == "escrow_deposit" else "out",
+            "desc": e["description"]
+        })
+    return {"ledger": formatted}
 
 @router.post("")
 def create_campaign(data: CreateProjectSchema, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
@@ -55,7 +72,7 @@ def create_campaign(data: CreateProjectSchema, background_tasks: BackgroundTasks
         "milestones": milestones_list,
         "created_at": datetime.now().isoformat()
     }
-    store.projects.append(new_project)
+    store.create_project(new_project)
 
     background_tasks.add_task(async_ai_flag_checker, project_id, data.name, data.description)
 

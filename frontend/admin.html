@@ -423,19 +423,22 @@
   const tabs = document.querySelectorAll('.admin-tab');
   const panes = document.querySelectorAll('.tab-pane');
   tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
+    tab.addEventListener('click', async () => {
       tabs.forEach(t => t.classList.remove('active'));
       panes.forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
       const pane = document.getElementById('tab-' + tab.dataset.tab);
       if (pane) pane.classList.add('active');
-      if (tab.dataset.tab === 'overview') initOverviewCharts();
-      if (tab.dataset.tab === 'projects') renderProjectsTab();
+      if (tab.dataset.tab === 'overview') await initOverviewCharts();
+      if (tab.dataset.tab === 'projects') await renderProjectsTab();
       if (tab.dataset.tab === 'kyc') renderKycTab();
-      if (tab.dataset.tab === 'ai') renderAITab();
-      if (tab.dataset.tab === 'ledger') renderLedgerTab();
+      if (tab.dataset.tab === 'ai') await renderAITab();
+      if (tab.dataset.tab === 'ledger') await renderLedgerTab();
     });
   });
+
+  // Call on init
+  setTimeout(initOverviewCharts, 100);
 
   // ===== HELPER =====
   function fraudBadge(score) {
@@ -445,18 +448,17 @@
 
   // ===== OVERVIEW TAB =====
   let pieChart = null, barChart = null, lineChart = null;
-  function initOverviewCharts() {
-    const projects = LV.getProjects();
-    const queue = LV.getQueue();
+  async function initOverviewCharts() {
+    const projects = await LV.getCampaigns();
 
     // Stats
-    const active = projects.filter(p => p.status === 'active').length;
+    const active = projects.filter(p => p.status === 'active' || p.status === 'funded').length;
     const totalRaised = projects.reduce((s, p) => s + (p.raised || p.raised_amount || 0), 0);
     const totalReleased = projects.reduce((s, p) => {
       return s + (p.milestones || []).filter(m => m.status === 'released').reduce((ms, m) => ms + (m.amount || m.target_amount || 0), 0);
     }, 0);
-    const pendingQ = queue.filter(q => q.status === 'pending').length;
-    const flagged = [...projects.filter(p => p.fraudFlag && p.fraudFlag.score > 50), ...queue.filter(q => q.fraudScore > 50)].length;
+    const pendingQ = projects.filter(q => q.status === 'pending_review').length;
+    const flagged = projects.filter(p => p.fraudFlag && p.fraudFlag.score > 50).length;
 
     document.getElementById('stat-active-count').textContent = active;
     document.getElementById('stat-total-escrow').textContent = LV.formatVND(totalRaised);
@@ -485,10 +487,7 @@
     });
 
     // Bar Chart - Fraud scores
-    const allItems = [
-      ...projects.filter(p => p.fraudFlag).map(p => ({ name: p.name.slice(0,25), score: p.fraudFlag.score })),
-      ...queue.map(q => ({ name: q.projectName.slice(0,25), score: q.fraudScore || 0 }))
-    ].slice(0,6);
+    const allItems = projects.filter(p => p.fraudFlag).map(p => ({ name: p.name.slice(0,25), score: p.fraudFlag.score })).slice(0,6);
 
     const ctx2 = document.getElementById('fraud-bar-chart').getContext('2d');
     if (barChart) barChart.destroy();
@@ -563,19 +562,23 @@
 
   // ===== PROJECTS TAB =====
   let rejectTargetId = null;
-  function renderProjectsTab() {
-    const queue = LV.getQueue();
-    const pending = queue.filter(q => q.status === 'pending');
-    const processed = queue.filter(q => q.status !== 'pending');
+  let adminProjectsList = [];
+  async function renderProjectsTab() {
+    adminProjectsList = await LV.getCampaigns();
+    const pending = adminProjectsList.filter(q => q.status === 'pending_review');
+    const processed = adminProjectsList.filter(q => q.status === 'active' || q.status === 'rejected' || q.status === 'funded');
     document.getElementById('pending-badge').textContent = `${pending.length} đang chờ`;
 
-    document.getElementById('pending-body').innerHTML = pending.length ? pending.map(q => `
-      <tr class="${q.fraudScore > 50 ? 'row-flag' : ''}">
+    document.getElementById('pending-body').innerHTML = pending.length ? pending.map(q => {
+      const score = q.fraudFlag ? q.fraudFlag.score : 0;
+      const reason = q.fraudFlag ? q.fraudFlag.reason : 'Không phát hiện bất thường';
+      return `
+      <tr class="${score > 50 ? 'row-flag' : ''}">
         <td style="font-family:monospace;font-size:11px;color:#8a9bb5;">${q.id}</td>
-        <td><strong style="color:#e0e6f0;">${q.projectName}</strong></td>
-        <td>${q.creatorName}</td>
-        <td style="color:#8a9bb5;">${LV.formatDate(q.submittedAt)}</td>
-        <td>${fraudBadge(q.fraudScore)} <span style="font-size:11px;color:#8a9bb5;display:block;margin-top:3px;">${q.fraudReason}</span></td>
+        <td><strong style="color:#e0e6f0;">${q.name}</strong></td>
+        <td>${q.creator_name || q.creatorName}</td>
+        <td style="color:#8a9bb5;">${LV.formatDate(q.created_at || q.createdAt)}</td>
+        <td>${fraudBadge(score)} <span style="font-size:11px;color:#8a9bb5;display:block;margin-top:3px;">${reason}</span></td>
         <td><span class="badge badge-neutral">Pending</span></td>
         <td>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -584,16 +587,15 @@
             <button class="btn-admin btn-reject" data-reject="${q.id}">✗ Từ chối</button>
           </div>
         </td>
-      </tr>`).join('')
-      : `<tr><td colspan="7" style="text-align:center;color:#8a9bb5;padding:24px;">Không có dự án nào đang chờ duyệt.</td></tr>`;
+      </tr>`;
+    }).join('') : `<tr><td colspan="7" style="text-align:center;color:#8a9bb5;padding:24px;">Không có dự án nào đang chờ duyệt.</td></tr>`;
 
     document.getElementById('history-body').innerHTML = processed.length ? processed.map(q => `
       <tr>
-        <td>${q.projectName}</td><td>${q.creatorName}</td>
-        <td>${q.status === 'approved' ? '<span class="badge badge-success">Đã duyệt</span>' : '<span class="badge badge-danger">Đã từ chối</span>'}</td>
+        <td>${q.name}</td><td>${q.creator_name || q.creatorName}</td>
+        <td>${q.status === 'active' || q.status === 'funded' ? '<span class="badge badge-success">Đã duyệt</span>' : '<span class="badge badge-danger">Đã từ chối</span>'}</td>
         <td style="font-size:12px;color:#8a9bb5;">${q.rejectReason || '—'}</td>
-      </tr>`).join('')
-      : `<tr><td colspan="4" style="text-align:center;color:#8a9bb5;padding:16px;">Chưa có lịch sử.</td></tr>`;
+      </tr>`).join('') : `<tr><td colspan="4" style="text-align:center;color:#8a9bb5;padding:16px;">Chưa có lịch sử.</td></tr>`;
 
     document.querySelectorAll('[data-view]').forEach(btn => btn.addEventListener('click', () => openDetailModal(btn.dataset.view)));
     document.querySelectorAll('[data-approve]').forEach(btn => btn.addEventListener('click', () => approveProject(btn.dataset.approve)));
@@ -601,17 +603,19 @@
   }
 
   function openDetailModal(id) {
-    const queue = LV.getQueue();
-    const q = queue.find(x => x.id === id);
+    const q = adminProjectsList.find(x => x.id === id);
     if(!q) return;
     
-    document.getElementById('detail-title').textContent = `Dự án: ${q.projectName}`;
+    const score = q.fraudFlag ? q.fraudFlag.score : 0;
+    const reason = q.fraudFlag ? q.fraudFlag.reason : 'Không phát hiện bất thường';
+    
+    document.getElementById('detail-title').textContent = `Dự án: ${q.name}`;
     document.getElementById('detail-content').innerHTML = `
-      <div style="margin-bottom:12px;"><strong>Người tạo:</strong> ${q.creatorName}</div>
-      <div style="margin-bottom:12px;"><strong>Khu vực:</strong> ${q.location}</div>
-      <div style="margin-bottom:12px;"><strong>Số tiền mục tiêu:</strong> <span style="color:#d4a843;font-weight:700;">${LV.formatVND(q.target)}</span></div>
+      <div style="margin-bottom:12px;"><strong>Người tạo:</strong> ${q.creator_name || q.creatorName}</div>
+      <div style="margin-bottom:12px;"><strong>Khu vực:</strong> ${q.location_name || q.location || 'Không rõ'}</div>
+      <div style="margin-bottom:12px;"><strong>Số tiền mục tiêu:</strong> <span style="color:#d4a843;font-weight:700;">${LV.formatVND(q.target_amount)}</span></div>
       <div style="margin-bottom:12px;"><strong>Mô tả:</strong> ${q.description || 'Không có mô tả'}</div>
-      <div style="margin-bottom:12px;"><strong>Phân tích AI:</strong> ${fraudBadge(q.fraudScore)} ${q.fraudReason}</div>
+      <div style="margin-bottom:12px;"><strong>Phân tích AI:</strong> ${fraudBadge(score)} ${reason}</div>
       
       <div style="margin-top:16px; border-top: 1px solid rgba(255,255,255,0.1); padding-top:16px;">
         <strong>Hình ảnh minh chứng (Mock Data):</strong>
@@ -625,26 +629,33 @@
   }
   document.getElementById('detail-close').addEventListener('click', () => document.getElementById('project-detail-modal').classList.remove('open'));
 
-  function approveProject(id) {
-    const queue = LV.getQueue();
-    const item = queue.find(q => q.id === id);
-    if (!item) return;
-    item.status = 'approved';
-    LV.saveQueue(queue);
-    const projects = LV.getProjects();
-    projects.push({
-      id: LV.uid('proj'), name: item.projectName, category: 'Cộng đồng',
-      icon: '🌱', cover: 'cover-a', location: item.location,
-      distanceKm: parseFloat((Math.random() * 4 + 0.5).toFixed(1)),
-      target: item.target, raised: 0, lat: LV.BASE_LAT, lng: LV.BASE_LNG,
-      description: item.description, creatorName: item.creatorName,
-      creatorVerified: false, status: 'active', createdAt: new Date().toISOString(),
-      milestones: (item.milestones || []).map(m => ({ name: m.name, amount: m.amount, status: 'pending', desc: m.desc || 'Chờ giải ngân.' })),
+  async function callApproveAPI(id, isApprove) {
+    const user = LV.getUser();
+    const res = await fetch('/api/admin/approve-project', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${user.token}`
+      },
+      body: JSON.stringify({ projectId: id, approve: isApprove })
     });
-    LV.saveProjects(projects);
-    LV.toast(`Đã duyệt dự án "${item.projectName}" — hiển thị công khai`, 'success');
-    renderProjectsTab();
-    initOverviewCharts();
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Lỗi hệ thống');
+    }
+  }
+
+  async function approveProject(id) {
+    const item = adminProjectsList.find(q => q.id === id);
+    if (!item) return;
+    try {
+      await callApproveAPI(id, true);
+      LV.toast(`Đã duyệt dự án "${item.name}" — hiển thị công khai`, 'success');
+      await renderProjectsTab();
+      initOverviewCharts();
+    } catch (err) {
+      LV.toast(err.message, 'error');
+    }
   }
 
   function openRejectModal(id) {
@@ -653,17 +664,20 @@
     document.getElementById('reject-modal').classList.add('open');
   }
   document.getElementById('reject-cancel').addEventListener('click', () => document.getElementById('reject-modal').classList.remove('open'));
-  document.getElementById('reject-confirm').addEventListener('click', () => {
-    const queue = LV.getQueue();
-    const item = queue.find(q => q.id === rejectTargetId);
+  document.getElementById('reject-confirm').addEventListener('click', async () => {
+    const item = adminProjectsList.find(q => q.id === rejectTargetId);
     if (item) {
-      item.status = 'rejected';
-      item.rejectReason = document.getElementById('reject-reason').value.trim() || 'Không đạt yêu cầu kiểm duyệt.';
-      LV.saveQueue(queue);
-      LV.toast(`Đã từ chối dự án "${item.projectName}"`, 'error');
+      try {
+        await callApproveAPI(rejectTargetId, false);
+        LV.toast(`Đã từ chối dự án "${item.name}"`, 'error');
+        document.getElementById('reject-modal').classList.remove('open');
+        await renderProjectsTab();
+      } catch (err) {
+        LV.toast(err.message, 'error');
+      }
+    } else {
+      document.getElementById('reject-modal').classList.remove('open');
     }
-    document.getElementById('reject-modal').classList.remove('open');
-    renderProjectsTab();
   });
 
   // ===== KYC TAB =====
@@ -722,23 +736,14 @@
   });
 
   // ===== AI FRAUD TAB =====
-  function renderAITab() {
-    const projects = LV.getProjects();
-    const queue = LV.getQueue();
-    const all = [
-      ...projects.map(p => ({
+  async function renderAITab() {
+    const projects = await LV.getCampaigns();
+    const all = projects.map(p => ({
         name: p.name, id: p.id,
         score: (p.fraudFlag && p.fraudFlag.score) || 5,
         reasons: p.fraudFlag ? [p.fraudFlag.reason] : ['Không phát hiện dấu hiệu bất thường'],
-        type: 'active'
-      })),
-      ...queue.map(q => ({
-        name: q.projectName, id: q.id,
-        score: q.fraudScore || 0,
-        reasons: [q.fraudReason || 'Chưa phân tích'],
-        type: 'pending'
-      }))
-    ];
+        type: p.status === 'pending_review' ? 'pending' : 'active'
+    }));
 
     document.getElementById('ai-fraud-list').innerHTML = all.map(item => {
       const isSuspicious = item.score > 50;
@@ -764,19 +769,20 @@
   }
 
   // ===== LEDGER TAB =====
-  function renderLedgerTab() {
-    const projects = LV.getProjects();
+  async function renderLedgerTab() {
+    const projects = await LV.getCampaigns();
     const sel = document.getElementById('ledger-project-select');
     const curId = sel.value || (projects[0] && projects[0].id);
     sel.innerHTML = projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
     sel.value = curId;
     sel.onchange = renderLedgerTab;
-    renderLedgerEntries(curId);
-    renderMilestones(curId);
+    await renderLedgerEntries(curId);
+    await renderMilestones(curId);
   }
 
-  function renderLedgerEntries(projectId) {
-    const ledger = LV.getLedger(projectId).slice().sort((a, b) => new Date(b.time || b.created_at) - new Date(a.time || a.created_at));
+  async function renderLedgerEntries(projectId) {
+    const fetchedLedger = await LV.getLedger(projectId);
+    const ledger = fetchedLedger.slice().sort((a, b) => new Date(b.time || b.created_at) - new Date(a.time || a.created_at));
     document.getElementById('ledger-audit-body').innerHTML = ledger.length ? ledger.map(e => {
       const typeClass = e.type === 'in' || e.type === 'escrow_deposit' ? 'type-badge-deposit' : e.type === 'refund' ? 'type-badge-refund' : 'type-badge-release';
       const typeLabel = e.type === 'in' || e.type === 'escrow_deposit' ? 'ESCROW_DEPOSIT' : e.type === 'out' || e.type === 'milestone_release' ? 'MILESTONE_RELEASE' : 'REFUND';
@@ -793,8 +799,8 @@
       : `<tr><td colspan="5" style="text-align:center;color:#8a9bb5;padding:20px;">Chưa có giao dịch nào.</td></tr>`;
   }
 
-  function renderMilestones(projectId) {
-    const p = LV.getProject(projectId);
+  async function renderMilestones(projectId) {
+    const p = await LV.getCampaignDetail(projectId);
     if (!p) return;
     document.getElementById('milestone-body').innerHTML = (p.milestones || []).map((m, i) => `
       <tr>

@@ -79,21 +79,37 @@
   LV.requireLogin();
   LV.renderNavbar('dashboard');
 
-  const params = new URLSearchParams(window.location.search);
-  const projects = LV.getProjects();
-  const select = document.getElementById('project-select');
-  select.innerHTML = projects.map((p) => `<option value="${p.id}">${p.name}</option>`).join('');
+  let projects = [];
+  let currentId = null;
 
-  let currentId = params.get('id') && projects.some((p) => p.id === params.get('id'))
-    ? params.get('id') : (projects[0] && projects[0].id);
-  select.value = currentId;
+  async function init() {
+    projects = await LV.getCampaigns();
+    const select = document.getElementById('project-select');
+    select.innerHTML = projects.map((p) => `<option value="${p.id}">${p.name}</option>`).join('');
+
+    const params = new URLSearchParams(window.location.search);
+    currentId = params.get('id') && projects.some((p) => p.id === params.get('id'))
+      ? params.get('id') : (projects[0] && projects[0].id);
+    
+    if (currentId) {
+      select.value = currentId;
+    }
+
+    renderAll();
+
+    // Role-aware subtitle
+    const sub = document.getElementById('dashboard-subtitle');
+    if (sub && LV.isAdmin()) {
+      sub.innerHTML = '<span class="live-dot"></span> Cập nhật thời gian thực từ tầng Gold (Medallion Lakehouse)';
+    }
+  }
 
   let simTimer = null;
 
   function escrowStatus(p) {
-    const released = p.milestones.filter((m) => m.status === 'released').length;
+    const released = (p.milestones || []).filter((m) => m.status === 'released').length;
     if (released === 0) return { label: '[ĐANG KHOÁ]', cls: 'banner-warning' };
-    if (released < p.milestones.length) return { label: '[ĐÃ GIẢI NGÂN MỘT PHẦN]', cls: 'banner-info' };
+    if (released < (p.milestones || []).length) return { label: '[ĐÃ GIẢI NGÂN MỘT PHẦN]', cls: 'banner-info' };
     return { label: '[ĐÃ GIẢI NGÂN TOÀN BỘ]', cls: 'banner-success' };
   }
 
@@ -108,14 +124,15 @@
     </tr>`;
   }
 
-  function renderAll() {
-    const p = LV.getProject(currentId);
+  async function renderAll() {
+    const p = projects.find(x => x.id === currentId);
     if (!p) return;
     const status = escrowStatus(p);
     document.getElementById('escrow-banner').innerHTML =
       `<div class="banner ${status.cls}">🔒 Trạng thái tài khoản escrow: <strong style="margin-left:4px;">${status.label}</strong> — dự án "${p.name}"</div>`;
 
-    const ledger = LV.getLedger(p.id).slice().sort((a, b) => new Date(b.time) - new Date(a.time));
+    const fetchedLedger = await LV.getLedger(p.id);
+    const ledger = fetchedLedger.slice().sort((a, b) => new Date(b.time) - new Date(a.time));
     document.getElementById('ledger-body').innerHTML = ledger.length
       ? ledger.map((e) => renderRow(e)).join('')
       : `<tr><td colspan="3" class="text-center text-muted">Chưa có giao dịch nào.</td></tr>`;
@@ -124,50 +141,46 @@
     const totalOut = ledger.filter((e) => e.type === 'out').reduce((s, e) => s + e.amount, 0);
     renderCharts(p, totalIn, totalOut, totalIn - totalOut);
   }
-
-  function startSimulation() {
-    if (simTimer) clearInterval(simTimer);
-    simTimer = setInterval(() => {
-      const p = LV.getProject(currentId);
-      if (!p || p.raised >= p.target) return;
-      const amt = [50000, 100000, 200000, 300000][Math.floor(Math.random() * 4)];
-      const entry = { time: new Date().toISOString(), amount: amt, type: 'in', desc: `+${LV.formatVND(amt)} từ ${LV.randomName()}` };
-      LV.pushLedger(p.id, entry);
-      const projectsAll = LV.getProjects();
-      const target = projectsAll.find((x) => x.id === p.id);
-      target.raised += amt;
-      LV.saveProjects(projectsAll);
-
+  window.addEventListener('LiveFeedUpdate', async (e) => {
+    if (e.detail.projectId === currentId) {
+      const p = projects.find(x => x.id === currentId);
+      const data = e.detail;
+      const entry = { 
+        time: new Date().toISOString(), 
+        amount: data.amount, 
+        type: 'in', 
+        desc: `+${LV.formatVND(data.amount)} từ ${data.backerName}` 
+      };
+      
       const tbody = document.getElementById('ledger-body');
+      // Xóa dòng "Chưa có giao dịch nào" nếu có
+      if (tbody.innerHTML.includes('Chưa có giao dịch nào')) {
+        tbody.innerHTML = '';
+      }
       tbody.insertAdjacentHTML('afterbegin', renderRow(entry, true));
-      const totalIn = LV.getLedger(p.id).filter((e) => e.type === 'in').reduce((s, e) => s + e.amount, 0);
-      const totalOut = LV.getLedger(p.id).filter((e) => e.type === 'out').reduce((s, e) => s + e.amount, 0);
+      
+      const fetchedLedger = await LV.getLedger(p.id);
+      const totalIn = fetchedLedger.filter((x) => x.type === 'in').reduce((s, x) => s + x.amount, 0);
+      const totalOut = fetchedLedger.filter((x) => x.type === 'out').reduce((s, x) => s + x.amount, 0);
       renderCharts(p, totalIn, totalOut, totalIn - totalOut);
-    }, 6000);
-  }
+    }
+  });
 
+  const select = document.getElementById('project-select');
   select.addEventListener('change', () => {
     currentId = select.value;
     renderAll();
   });
-
-  // Role-aware subtitle
-  (function() {
-    const sub = document.getElementById('dashboard-subtitle');
-    if (sub && LV.isAdmin()) {
-      sub.innerHTML = '<span class="live-dot"></span> Cập nhật thời gian thực từ tầng Gold (Medallion Lakehouse)';
-    }
-  })();
 
   // ===== CHARTS =====
   let cashflowChart = null;
   let milestoneChart = null;
 
   function renderCharts(p, totalIn, totalOut, balance) {
-    const pct = p.target > 0 ? Math.round(totalIn / p.target * 100) : 0;
+    const pct = p.target_amount > 0 ? Math.round(totalIn / p.target_amount * 100) : 0;
     const releasedMs = (p.milestones || []).filter(m => m.status === 'released').length;
 
-    document.getElementById('chart-modal-sub').textContent = `Mục tiêu: ${LV.formatVND(p.target)} • Đã đạt: ${pct}% • Hoàn thành: ${releasedMs}/${(p.milestones||[]).length} mốc`;
+    document.getElementById('chart-modal-sub').textContent = `Mục tiêu: ${LV.formatVND(p.target_amount)} • Đã đạt: ${pct}% • Hoàn thành: ${releasedMs}/${(p.milestones||[]).length} mốc`;
     document.getElementById('chart-stats-row').innerHTML = [
       {label: 'Tổng gọi vốn', val: LV.formatVND(totalIn), color: '#2f9e6e'},
       {label: 'Đã giải ngân', val: LV.formatVND(totalOut), color: '#e55757'},
@@ -212,8 +225,7 @@
     }
   }
 
-  renderAll();
-  startSimulation();
+  init();
 </script>
 </body>
 </html>

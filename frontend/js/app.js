@@ -42,128 +42,8 @@ const LV = (function () {
   }
 
   function seedProjects() {
-    const defs = [
-      {
-        name: 'Phòng học miễn phí cho trẻ em xóm trọ',
-        category: 'Giáo dục',
-        icon: ICONS[2],
-        cover: COVERS[0],
-        location: 'Phường Bình Hưng Hoà, Q. Bình Tân',
-        distanceKm: 1.2,
-        target: 30000000,
-        raised: 21000000,
-        lat: BASE_LAT + 0.012, lng: BASE_LNG - 0.02,
-        description: 'Cải tạo một phòng sinh hoạt cộng đồng thành lớp học miễn phí buổi tối cho khoảng 25 em nhỏ có hoàn cảnh khó khăn trong xóm trọ, do các bạn sinh viên tình nguyện đứng lớp.',
-        creatorName: 'Nguyễn Thị Mai',
-        creatorVerified: true,
-        milestones: [
-          { name: 'Sửa chữa phòng học, lắp bàn ghế', amount: 12000000, status: 'released', desc: 'Đã giải ngân để sửa nền, sơn tường và mua 15 bộ bàn ghế.' },
-          { name: 'Mua sách vở, dụng cụ học tập', amount: 8000000, status: 'released', desc: 'Đã giải ngân một phần để mua sách giáo khoa và văn phòng phẩm cho học kỳ đầu.' },
-          { name: 'Duy trì chi phí điện nước 6 tháng', amount: 10000000, status: 'locked', desc: 'Sẽ giải ngân khi phòng học chính thức hoạt động và có xác nhận từ đại diện tổ dân phố.' },
-        ],
-      },
-      {
-        name: 'Trạm tái chế nhựa khu phố 4',
-        category: 'Môi trường',
-        icon: ICONS[1],
-        cover: COVERS[1],
-        location: 'Phường Tân Định, Q.1',
-        distanceKm: 2.8,
-        target: 45000000,
-        raised: 45000000,
-        lat: BASE_LAT - 0.008, lng: BASE_LNG + 0.01,
-        description: 'Lắp đặt trạm thu gom và phân loại rác nhựa tự động, kết nối với đơn vị tái chế để giảm rác thải nhựa ra kênh rạch trong khu vực.',
-        creatorName: 'Trần Văn Khoa',
-        creatorVerified: true,
-        milestones: [
-          { name: 'Mua thùng phân loại và máy ép nhựa mini', amount: 25000000, status: 'released', desc: 'Đã giải ngân để mua 10 thùng phân loại và 1 máy ép nhựa mini.' },
-          { name: 'Lắp mái che và biển hướng dẫn', amount: 10000000, status: 'released', desc: 'Đã hoàn thành lắp đặt mái che chống mưa nắng cho trạm.' },
-          { name: 'Vận hành thử 3 tháng', amount: 10000000, status: 'released', desc: 'Đã giải ngân toàn bộ, trạm đang vận hành ổn định.' },
-        ],
-      },
-      {
-        name: 'Thư viện khu phố mini',
-        category: 'Cộng đồng',
-        icon: ICONS[0],
-        cover: COVERS[4],
-        location: 'Phường Linh Đông, TP. Thủ Đức',
-        distanceKm: 4.5,
-        target: 20000000,
-        raised: 6200000,
-        lat: BASE_LAT + 0.03, lng: BASE_LNG + 0.025,
-        description: 'Xây dựng một tủ sách cộng đồng đặt tại nhà văn hoá khu phố, phục vụ đọc miễn phí cho cư dân mọi lứa tuổi, ưu tiên sách thiếu nhi và kỹ năng sống.',
-        creatorName: 'Lê Hoàng Bích',
-        creatorVerified: false,
-        milestones: [
-          { name: 'Đóng kệ sách và bàn đọc', amount: 8000000, status: 'pending', desc: 'Chờ đủ 40% vốn mục tiêu để bắt đầu đặt đóng kệ sách.' },
-          { name: 'Mua sách và trang trí không gian', amount: 7000000, status: 'locked', desc: 'Sẽ giải ngân sau khi hoàn thành mốc đóng kệ sách.' },
-          { name: 'Tổ chức buổi ra mắt thư viện', amount: 5000000, status: 'locked', desc: 'Sẽ giải ngân khi thư viện sẵn sàng đón độc giả.' },
-        ],
-      },
-      {
-        name: 'Cải tạo sân chơi trẻ em công viên nhỏ',
-        category: 'Cộng đồng',
-        icon: ICONS[3],
-        cover: COVERS[3],
-        location: 'Phường An Lạc, Q. Bình Tân',
-        distanceKm: 3.3,
-        target: 35000000,
-        raised: 9000000,
-        lat: BASE_LAT - 0.02, lng: BASE_LNG - 0.015,
-        description: 'Sửa chữa và bổ sung thiết bị chơi an toàn cho khu công viên nhỏ đang xuống cấp, nơi vui chơi duy nhất của trẻ em trong khu phố.',
-        creatorName: 'Phạm Quốc Huy',
-        creatorVerified: true,
-        fraudFlag: { score: 62, reason: '62% ảnh trùng khớp với dự án khác trên mạng' },
-        milestones: [
-          { name: 'Tháo dỡ thiết bị cũ hư hỏng', amount: 10000000, status: 'pending', desc: 'Chờ giải ngân sau khi có xác nhận khảo sát hiện trạng.' },
-          { name: 'Lắp đặt thiết bị chơi mới', amount: 20000000, status: 'locked', desc: 'Sẽ giải ngân sau khi hoàn thành tháo dỡ.' },
-          { name: 'Trồng cây xanh, lắp đèn chiếu sáng', amount: 5000000, status: 'locked', desc: 'Sẽ giải ngân ở giai đoạn hoàn thiện cuối cùng.' },
-        ],
-      },
-      {
-        name: 'Máy lọc nước sạch cho xóm ven kênh',
-        category: 'Sức khoẻ',
-        icon: ICONS[4],
-        cover: COVERS[2],
-        location: 'Phường 6, Q.8',
-        distanceKm: 4.9,
-        target: 28000000,
-        raised: 21000000,
-        lat: BASE_LAT + 0.045, lng: BASE_LNG - 0.03,
-        description: 'Lắp đặt hệ thống lọc nước sạch dùng chung cho khoảng 40 hộ dân sống ven kênh chưa có nước máy ổn định.',
-        creatorName: 'Đỗ Thị Ngọc',
-        creatorVerified: true,
-        milestones: [
-          { name: 'Mua hệ thống lọc và bồn chứa', amount: 18000000, status: 'released', desc: 'Đã giải ngân, thiết bị đang được vận chuyển về khu vực lắp đặt.' },
-          { name: 'Thi công đường ống dẫn nước', amount: 10000000, status: 'pending', desc: 'Chờ giải ngân sau khi có báo giá thi công chính thức.' },
-        ],
-      },
-      {
-        name: 'Tủ thuốc sơ cứu cộng đồng',
-        category: 'Sức khoẻ',
-        icon: ICONS[5],
-        cover: COVERS[5],
-        location: 'Phường Hiệp Bình Chánh, TP. Thủ Đức',
-        distanceKm: 4.1,
-        target: 15000000,
-        raised: 2500000,
-        lat: BASE_LAT + 0.06, lng: BASE_LNG + 0.04,
-        description: 'Trang bị tủ thuốc và dụng cụ sơ cứu cơ bản đặt tại các điểm sinh hoạt chung, kèm buổi tập huấn sơ cứu miễn phí cho cư dân.',
-        creatorName: 'Vũ Minh Tâm',
-        creatorVerified: false,
-        milestones: [
-          { name: 'Mua tủ thuốc và vật tư y tế', amount: 9000000, status: 'pending', desc: 'Chờ giải ngân khi đạt 30% vốn mục tiêu.' },
-          { name: 'Tổ chức tập huấn sơ cứu', amount: 6000000, status: 'locked', desc: 'Sẽ giải ngân sau buổi tập huấn đầu tiên.' },
-        ],
-      },
-    ];
-
-    return defs.map((d) => ({
-      id: uid('proj'),
-      status: 'active',
-      createdAt: new Date(Date.now() - Math.random() * 20 * 86400000).toISOString(),
-      ...d,
-    }));
+    // Removed - Backend is now the SSOT for projects
+    return [];
   }
 
   function seedLedger(projects) {
@@ -224,9 +104,9 @@ const LV = (function () {
   function ensureSeed() {
     ensureAdminAccount();
     if (!localStorage.getItem(KEYS.projects)) {
-      const projects = seedProjects();
-      localStorage.setItem(KEYS.projects, JSON.stringify(projects));
-      localStorage.setItem(KEYS.ledger, JSON.stringify(seedLedger(projects)));
+      // Dummy check to prevent re-seeding ledger unnecessarily
+      localStorage.setItem(KEYS.projects, '[]');
+      localStorage.setItem(KEYS.ledger, JSON.stringify({}));
     }
     if (!localStorage.getItem(KEYS.queue)) {
       localStorage.setItem(KEYS.queue, JSON.stringify([
@@ -305,16 +185,59 @@ const LV = (function () {
     }
   }
 
-  function getProjects() { return JSON.parse(localStorage.getItem(KEYS.projects) || '[]'); }
-  function saveProjects(list) { localStorage.setItem(KEYS.projects, JSON.stringify(list)); }
-  function getProject(id) { return getProjects().find((p) => p.id === id); }
+  // Async API calls to Backend
+  async function getCampaigns() {
+    try {
+      const res = await fetch('/api/campaigns');
+      const data = await res.json();
+      return data.projects || [];
+    } catch (err) {
+      console.error(err);
+      return [];
+    }
+  }
+
+  async function getNearbyCampaigns(lat = BASE_LAT, lng = BASE_LNG, radius = 5.0) {
+    try {
+      const res = await fetch(`/api/location/nearby?lat=${lat}&lng=${lng}&radius_km=${radius}`);
+      const data = await res.json();
+      return data.projects || [];
+    } catch (err) {
+      console.error(err);
+      return [];
+    }
+  }
+
+  async function getCampaignDetail(id) {
+    try {
+      const res = await fetch(`/api/campaigns/${id}`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.project;
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
+  }
+
+  // Deprecated synchronous functions (kept as empty to avoid crash if some old code calls them before being updated)
+  function getProjects() { return []; }
+  function saveProjects(list) { }
+  function getProject(id) { return null; }
 
   function getQueue() { return JSON.parse(localStorage.getItem(KEYS.queue) || '[]'); }
   function saveQueue(list) { localStorage.setItem(KEYS.queue, JSON.stringify(list)); }
 
-  function getLedger(projectId) {
-    const all = JSON.parse(localStorage.getItem(KEYS.ledger) || '{}');
-    return all[projectId] || [];
+  async function getLedger(projectId) {
+    try {
+      const res = await fetch(`/api/campaigns/${projectId}/ledger`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.ledger || [];
+    } catch (err) {
+      console.error(err);
+      return [];
+    }
   }
   function pushLedger(projectId, entry) {
     const all = JSON.parse(localStorage.getItem(KEYS.ledger) || '{}');
@@ -375,16 +298,52 @@ const LV = (function () {
     if (logoutBtn) logoutBtn.addEventListener('click', (e) => { e.preventDefault(); logout(); });
   }
 
+  function initLiveFeed() {
+    const wsUrl = 'ws://' + (window.location.hostname || '127.0.0.1') + ':8000/ws/live-feed';
+    let ws = new WebSocket(wsUrl);
+    
+    ws.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.event === 'NEW_TRANSACTION') {
+          const data = payload.data;
+          // Because projects are now fetched from the backend, we don't strictly need to update localStorage here.
+          // The backend maintains the SSOT. But we can update if a project is locally cached, though it's not needed anymore.
+          
+          const entry = {
+            time: payload.timestamp,
+            amount: data.amount,
+            type: 'in',
+            desc: `+${formatVND(data.amount)} từ ${data.backerName}`
+          };
+          pushLedger(data.projectId, entry);
+          
+          // Dispatch custom event for UI to update realtime
+          window.dispatchEvent(new CustomEvent('LiveFeedUpdate', { detail: data }));
+          toast(`Mới: +${formatVND(data.amount)} từ ${data.backerName}`, 'success');
+        }
+      } catch (err) {
+        console.error('Error parsing live feed:', err);
+      }
+    };
+
+    ws.onclose = () => {
+      setTimeout(initLiveFeed, 3000); // Reconnect
+    };
+  }
+
   return {
     KEYS, formatVND, formatDate, haversineKm, ensureSeed, randomName, initials,
     getUser, setUser, logout, requireLogin, requireAdmin, isAdmin,
-    getProjects, saveProjects, getProject,
+    getCampaigns, getNearbyCampaigns, getCampaignDetail,
+    getProjects, saveProjects, getProject, // Deprecated
     getQueue, saveQueue,
     getLedger, pushLedger,
     getRegisteredEmails, addRegisteredEmail, checkEmailExists,
-    toast, renderNavbar, uid,
+    toast, renderNavbar, uid, initLiveFeed,
     BASE_LAT, BASE_LNG,
   };
 })();
 
 LV.ensureSeed();
+LV.initLiveFeed();
