@@ -25,7 +25,9 @@ def get_kyc_documents(current_user: dict = Depends(require_admin)):
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
-        SELECT k.id, k.user_id, k.doc_type, k.doc_number, k.front_image_url, k.back_image_url, k.status, MAX(k.submitted_at) as submitted_at, u.email 
+        SELECT k.id, k.user_id, k.doc_type, k.front_image_url, k.back_image_url, 
+               k.status, k.dob, k.current_address, k.social_link, k.bank_info,
+               MAX(k.submitted_at) as submitted_at, u.email, u.full_name 
         FROM kyc_documents k
         JOIN users u ON k.user_id = u.id
         GROUP BY k.user_id

@@ -1,6 +1,6 @@
 # 🏆 LocalVest — Nền Tảng Gọi Vốn Cộng Đồng Minh Bạch (MVP)
 
-> **LocalVest** là nền tảng gọi vốn minh bạch kết hợp ký quỹ dòng tiền (Escrow), kiểm tra an toàn bằng AI (AI-Fraud Shield) và bản đồ tác động cộng đồng theo bán kính 3-5km (Hyperlocal Geofencing).
+> **LocalVest** là nền tảng gọi vốn minh bạch kết hợp ký quỹ dòng tiền (Escrow), kiểm tra an toàn bằng AI (AI-Fraud Shield) và bản đồ tác động cộng đồng theo bán kính 10km (Bounding Box&Dynamic Radius).
 
 ---
 
@@ -111,5 +111,7 @@ python run.py
 4. **Computer Vision - AI Audit Milestone**:
    - Nâng cấp tính năng giải ngân tự động: Khi chủ dự án upload ảnh nghiệm thu (vd: ảnh phòng học đã lắp xong bàn ghế), AI Object Detection sẽ đếm số lượng bàn ghế trong ảnh xem có khớp với cam kết trong Milestone hay không trước khi báo cáo Admin duyệt.
 
-
+## ADMIN ACCOUNT
+**Email:** admin@gmail.com / admin@localvest.vn
+**MK:** Admin123@gmail.com
 
