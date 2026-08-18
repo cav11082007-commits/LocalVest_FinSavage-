@@ -1,5 +1,5 @@
 -- ==========================================================================
--- LocalVest Database Schema (SQLite) - Demo Cơ Sở Dữ Liệu ở chính máy local 
+-- LocalVest Database Schema (SQLite version)
 -- ==========================================================================
 
 -- 1. AUTH & USERS TABLE
