@@ -51,6 +51,15 @@ def get_current_user(authorization: Optional[str] = Header(None)) -> Dict[str, s
     except JWTError:
         raise HTTPException(status_code=401, detail="Token không hợp lệ hoặc đã hết hạn")
 
+def get_current_user_optional(authorization: Optional[str] = Header(None)) -> Optional[Dict[str, str]]:
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    token = authorization.split(" ")[1]
+    try:
+        return jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.ALGORITHM])
+    except JWTError:
+        return None
+
 def require_role(allowed_roles: List[str]):
     """
     Dependency checker cho phân quyền RBAC dựa trên danh sách các vai trò được phép (backer, project_owner, admin).

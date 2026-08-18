@@ -618,10 +618,9 @@
       <div style="margin-bottom:12px;"><strong>Phân tích AI:</strong> ${fraudBadge(score)} ${reason}</div>
       
       <div style="margin-top:16px; border-top: 1px solid rgba(255,255,255,0.1); padding-top:16px;">
-        <strong>Hình ảnh minh chứng (Mock Data):</strong>
+        <strong>Hình ảnh dự án:</strong>
         <div style="display:flex; gap:10px; margin-top:10px; overflow-x:auto;">
-          <img src="https://picsum.photos/seed/${q.id}1/200/140" style="border-radius:8px; border:1px solid rgba(255,255,255,0.2);">
-          <img src="https://picsum.photos/seed/${q.id}2/200/140" style="border-radius:8px; border:1px solid rgba(255,255,255,0.2);">
+          ${(q.images && q.images.length > 0) ? q.images.map(img => `<img src="${img}" style="height:140px; border-radius:8px; border:1px solid rgba(255,255,255,0.2);">`).join('') : (q.cover && q.cover !== 'cover-a' ? `<img src="${q.cover}" style="height:140px; border-radius:8px; border:1px solid rgba(255,255,255,0.2);">` : `<img src="https://picsum.photos/seed/${q.id}1/200/140" style="height:140px; border-radius:8px; border:1px solid rgba(255,255,255,0.2);">`)}
         </div>
       </div>
     `;
@@ -681,11 +680,23 @@
   });
 
   // ===== KYC TAB =====
-  function getKycDocs() { return JSON.parse(localStorage.getItem('lv_kyc_docs') || '[]'); }
-  function saveKycDocs(d) { localStorage.setItem('lv_kyc_docs', JSON.stringify(d)); }
-
-  function renderKycTab() {
-    const docs = getKycDocs();
+  let kycDocsList = [];
+  async function fetchKycDocs() {
+    const user = LV.getUser();
+    try {
+      const res = await fetch('/api/admin/kyc', {
+        headers: { 'Authorization': `Bearer ${user.token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        kycDocsList = data.kyc_docs || [];
+      }
+    } catch (err) { console.error(err); }
+  }
+  
+  async function renderKycTab() {
+    await fetchKycDocs();
+    const docs = kycDocsList;
     document.getElementById('kyc-body').innerHTML = docs.length ? docs.map((d, i) => `
       <tr>
         <td style="font-size:12px;color:#8a9bb5;">${d.user_id}</td>
@@ -702,37 +713,39 @@
         </td>
         <td>
           <div style="display:flex;gap:6px;">
-            <button class="btn-admin btn-approve" onclick="updateKyc(${i},'approved')">✓ Duyệt</button>
-            <button class="btn-admin btn-reject" onclick="updateKyc(${i},'rejected')">✗ Từ chối</button>
+            <button class="btn-admin btn-approve" onclick="updateKyc('${d.id}','approved')">✓ Duyệt</button>
+            <button class="btn-admin btn-reject" onclick="updateKyc('${d.id}','rejected')">✗ Từ chối</button>
           </div>
         </td>
       </tr>`).join('')
-      : `<tr><td colspan="7" style="text-align:center;color:#8a9bb5;padding:24px;">Chưa có hồ sơ KYC nào được nộp. Nhấn "Thêm KYC mẫu" để test.</td></tr>`;
+      : `<tr><td colspan="7" style="text-align:center;color:#8a9bb5;padding:24px;">Chưa có hồ sơ KYC nào được nộp.</td></tr>`;
   }
 
-  function updateKyc(idx, status) {
-    const docs = getKycDocs();
-    if (docs[idx]) { docs[idx].status = status; saveKycDocs(docs); }
-    LV.toast(`KYC ${status === 'approved' ? 'đã được duyệt' : 'bị từ chối'}`, status === 'approved' ? 'success' : 'error');
-    renderKycTab();
+  async function updateKyc(id, status) {
+    const user = LV.getUser();
+    try {
+        const res = await fetch(`/api/admin/kyc/${id}/status`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.token}` 
+            },
+            body: JSON.stringify({ status })
+        });
+        if (res.ok) {
+            LV.toast(`KYC ${status === 'approved' ? 'đã được duyệt' : 'bị từ chối'}`, status === 'approved' ? 'success' : 'error');
+            renderKycTab();
+        } else {
+            LV.toast('Lỗi cập nhật KYC', 'error');
+        }
+    } catch (err) {
+        console.error(err);
+        LV.toast('Lỗi kết nối', 'error');
+    }
   }
 
   document.getElementById('simulate-kyc-btn').addEventListener('click', () => {
-    const docs = getKycDocs();
-    const names = ['Nguyễn Văn An', 'Trần Thị Bích', 'Lê Minh Khôi', 'Phạm Thu Hà'];
-    const name = names[Math.floor(Math.random() * names.length)];
-    docs.push({
-      id: 'kyc_' + Math.random().toString(36).slice(2,9),
-      user_id: 'usr_' + Math.random().toString(36).slice(2,7),
-      doc_type: Math.random() > 0.5 ? 'CCCD' : 'CMND',
-      doc_number: '0' + Math.floor(Math.random() * 1e11).toString().padStart(11,'0'),
-      front_image_url: 'https://picsum.photos/seed/' + Math.floor(Math.random()*999) + '/300/200',
-      status: 'pending',
-      submitted_at: new Date().toISOString()
-    });
-    saveKycDocs(docs);
-    LV.toast('Đã thêm hồ sơ KYC mẫu!', 'success');
-    renderKycTab();
+    LV.toast('Vui lòng nộp KYC thật thông qua quy trình Đăng dự án.', 'warning');
   });
 
   // ===== AI FRAUD TAB =====

@@ -6,7 +6,6 @@ Chạy nền để quét:
     dấu câu, leetspeak, phủ định...).
  2. Reverse-image / duplicate check bằng Perceptual Hashing (pHash),
     có xử lý cả ảnh bị lật ngang (mirror).
- 
 Thiết kế:
  - `TextRiskAnalyzer`  : chịu trách nhiệm chuẩn hóa + chấm điểm rủi ro văn bản.
  - `ImageDuplicateDetector`: chịu trách nhiệm tính pHash + so khớp trùng lặp.
@@ -47,9 +46,9 @@ logger = logging.getLogger("localvest.ai_flag_worker")
 # ==========================================
 PHASH_DUPLICATE_THRESHOLD = 8  # Hamming distance <= ngưỡng này -> coi là trùng
 BASE_FRAUD_SCORE = 0      # Điểm nền mặc định cho mọi project
-MAX_FRAUD_SCORE = 100
+MAX_FRAUD_SCORE = 100     
 SUSPICIOUS_THRESHOLD = 50      # fraud_score > ngưỡng này -> is_suspicious = True
-IMAGE_DUPLICATE_PENALTY = 40
+IMAGE_DUPLICATE_PENALTY = 40   # Nếu hình ảnh trùng 100% trên mạng thì cộng 40 điểm
  
 # Trọng số từ khóa: Từ khóa nguy hiểm hơn sẽ cộng nhiều điểm hơn.
 # Có thể bổ sung thêm từ log thực tế (false-negative bị lọt) tại đây.
