@@ -32,8 +32,11 @@ docs/FLOW5_IDEAS.md
 FLOW5_BACKEND_MIGRATION_PLAN.md
 FLOW3_4_REFACTOR_PLAN.md
 
-# Bỏ qua dữ liệu ảnh 
-backend/app/services/datatrain
+# Database files
+*.db
+*.sqlite3
+backend/app/database/*.db
+
 
 
 
