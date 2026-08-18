@@ -17,6 +17,20 @@ def init_db():
     conn.commit()
     conn.close()
 
+def migrate_db():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    # Check if 'images' column exists in 'projects' table
+    cur.execute("PRAGMA table_info(projects)")
+    columns = [info['name'] for info in cur.fetchall()]
+    if 'images' not in columns:
+        try:
+            cur.execute("ALTER TABLE projects ADD COLUMN images TEXT DEFAULT '[]'")
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass
+    conn.close()
+
 def is_db_empty():
     conn = get_db_connection()
     cur = conn.cursor()
@@ -28,3 +42,5 @@ def is_db_empty():
 # Khởi tạo DB nếu chưa có
 if not os.path.exists(DB_PATH):
     init_db()
+else:
+    migrate_db()

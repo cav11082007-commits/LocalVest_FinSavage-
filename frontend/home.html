@@ -71,10 +71,8 @@
 
   function statusBadge(p) {
     const pct = Math.round((p.raised_amount / p.target_amount) * 100);
-    if (p.status === 'pending_review') return `<span class="badge badge-warning">Đang chờ duyệt</span>`;
-    if (p.fraudFlag) return `<span class="badge badge-danger">⚠ Đang xác minh</span>`;
-    if (pct >= 100) return `<span class="badge badge-success">Đã đạt mục tiêu</span>`;
-    return `<span class="badge badge-primary">${p.category}</span>`;
+    if (pct >= 100 || p.status === 'funded') return `<span class="badge badge-success">Đạt được mục tiêu</span>`;
+    return `<span class="badge badge-primary">Đang trong quá trình</span>`;
   }
 
   function renderGrid() {

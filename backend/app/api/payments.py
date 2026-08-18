@@ -27,11 +27,9 @@ async def momo_webhook(data: MoMoWebhookSchema):
     if not hmac.compare_digest(computed_sig, data.signature):
         raise HTTPException(status_code=403, detail="Lỗi bảo mật: Chữ ký không hợp lệ (Invalid Signature)")
 
-    # 2. Idempotency: Kiểm tra giao dịch trùng lặp
+    # 2. Idempotency: Kiểm tra giao dịch trùng lặp O(1)
     if data.gatewayTxnId:
-        ledger = store.get_ledger()
-        exists = any(entry.get("gateway_txn_id") == data.gatewayTxnId for entry in ledger)
-        if exists:
+        if store.check_txn_exists(data.gatewayTxnId):
             # Giao dịch đã xử lý trước đó, báo OK nhưng không xử lý lại
             return {"status": "success", "message": "Giao dịch đã tồn tại, bỏ qua xử lý lặp."}
 
@@ -73,6 +71,9 @@ async def mock_momo_pay(data: MockMoMoPaySchema):
     Mock endpoint cho môi trường MVP.
     Frontend gọi API này, Backend tự sinh chữ ký HMAC bảo mật và kích hoạt luồng Webhook.
     """
+    if getattr(settings, "ENV", "dev") == "prod":
+        raise HTTPException(status_code=403, detail="Endpoint mock bị khóa trên môi trường Production")
+
     if data.amount <= 0:
         raise HTTPException(status_code=400, detail="Số tiền đóng góp phải lớn hơn 0")
 

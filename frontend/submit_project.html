@@ -664,6 +664,7 @@
       }
       if (!idFront) document.getElementById('id-front-box').classList.add('has-error');
       if (!idBack) document.getElementById('id-back-box').classList.add('has-error');
+      document.getElementById('step2-required-error').classList.add('show');
     }
 
     function validateStep2() {
@@ -745,6 +746,18 @@
     document.getElementById('add-milestone').addEventListener('click', addMilestoneRow);
     addMilestoneRow();
 
+    document.getElementById('btn-next').addEventListener('click', () => {
+      if (step === 1 && !validateStep1()) return;
+      if (step === 2 && !validateStep2()) {
+        markStep2RequiredErrors();
+        return;
+      }
+      if (step < totalSteps) goToStep(step + 1);
+    });
+
+    document.getElementById('btn-back').addEventListener('click', () => {
+      if (step > 1) goToStep(step - 1);
+    });
     document.getElementById('submit-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!validateStep3()) return;
@@ -772,10 +785,16 @@
           milestones: milestones
         };
 
+        const formData = new FormData();
+        formData.append('payload', JSON.stringify(payload));
+        for (let i = 0; i < MAX_PHOTOS; i++) {
+          if (photoSlots[i]) formData.append('project_images', photoSlots[i]);
+        }
+        if (idFront) formData.append('kyc_front', idFront);
+        if (idBack) formData.append('kyc_back', idBack);
+
         const user = LV.getUser();
-        const headers = {
-          'Content-Type': 'application/json'
-        };
+        const headers = {};
         if (user && user.token) {
           headers['Authorization'] = `Bearer ${user.token}`;
         }
@@ -783,7 +802,7 @@
         const res = await fetch('/api/campaigns', {
           method: 'POST',
           headers: headers,
-          body: JSON.stringify(payload)
+          body: formData
         });
 
         if (!res.ok) {
@@ -805,26 +824,6 @@
       }
     });
 
-    const queue = LV.getQueue();
-    const user = LV.getUser();
-    queue.push({
-      id: LV.uid('sub'),
-      projectName: document.getElementById('f-name').value.trim(),
-      creatorName: user ? user.name : 'Không rõ',
-      submittedAt: new Date().toISOString(),
-      status: 'pending',
-      fraudScore: Math.floor(Math.random() * 30), // dự án tự đăng ký demo: nguy cơ thấp mặc định
-      fraudReason: 'Không phát hiện dấu hiệu bất thường',
-      target: Number(document.getElementById('f-target').value),
-      description: document.getElementById('f-desc').value.trim(),
-      location: `${document.getElementById('f-ward').value}, ${document.getElementById('f-district').value}, ${document.getElementById('f-province').value}`,
-      milestones: readMilestones(),
-    });
-    LV.saveQueue(queue);
-
-    submitted = true;
-    document.getElementById('register-card').classList.add('hidden');
-    document.getElementById('success-panel').classList.remove('hidden');
 
     // Cảnh báo mất dữ liệu nếu thoát giữa chừng multi-step form (đề xuất bổ sung AC)
     function formHasInput() {
