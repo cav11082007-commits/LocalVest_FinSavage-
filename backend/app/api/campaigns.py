@@ -109,9 +109,16 @@ def create_campaign(
             "id": f"kyc_{uuid.uuid4().hex[:8]}",
             "user_id": current_user["sub"],
             "doc_type": "cccd",
-            "doc_number": "N/A",  # MVP doesn't extract ID yet
             "front_image_url": front_url,
             "back_image_url": back_url,
+            "dob": data.get("dob"),
+            "current_address": data.get("current_address"),
+            "social_link": data.get("social_link"),
+            "bank_info": {
+                "bank_name": data.get("bank_name"),
+                "account_number": data.get("bank_account_number"),
+                "account_name": data.get("bank_account_name")
+            } if data.get("bank_name") else None,
             "status": "pending",
             "submitted_at": datetime.now().isoformat()
         }

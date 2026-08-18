@@ -214,11 +214,16 @@ def register(data: RegisterSchema):
  
     role = data.role or "backer"
  
+    alt_emails = []
+    if phone_clean:
+        alt_emails.append(phone_clean)
+
     new_user = {
         "id": f"usr_{uuid.uuid4().hex[:8]}",
         "email": email_clean,
         "full_name": data.full_name,
         "phone": phone_clean,
+        "alt_emails": alt_emails,
         "password_hash": hash_password(data.password),
         "role": role,
         "kyc_status": "pending",
@@ -257,14 +262,21 @@ def login(data: LoginSchema):
         "message": "Đăng nhập thành công"
     }
  
+@router.get("/me")
+def get_me(current_user: dict = Depends(get_current_user)):
+    user = store.get_user(current_user["sub"])
+    if not user:
+        raise HTTPException(status_code=404, detail="Không tìm thấy người dùng")
+    safe_user = {k: v for k, v in user.items() if k != "password_hash"}
+    return {"user": safe_user}
+
 @router.post("/kyc-upload")
 def upload_kyc(data: KYCUploadSchema, current_user: dict = Depends(get_current_user)):
     record = {
         "id": f"kyc_{uuid.uuid4().hex[:8]}",
         "user_id": current_user["sub"],
         "doc_type": data.doc_type,
-        "doc_number": data.doc_number,
-        "front_image_url": data.front_image_url,
+                "front_image_url": data.front_image_url,
         "back_image_url": data.back_image_url,
         "status": "pending",
         "submitted_at": datetime.now().isoformat()

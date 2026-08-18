@@ -210,10 +210,10 @@ const LV = (function () {
     try {
       const res = await fetch(`/api/location/nearby?lat=${lat}&lng=${lng}&radius_km=${radius}`);
       const data = await res.json();
-      return data.projects || [];
+      return data; // Return full object so frontend knows final radius
     } catch (err) {
       console.error(err);
-      return [];
+      return { projects: [], radius_km: radius };
     }
   }
 
