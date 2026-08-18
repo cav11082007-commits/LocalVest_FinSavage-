@@ -1,6 +1,6 @@
 -- ==========================================================================
 -- LocalVest Database Schema (PostgreSQL + PostGIS Extension)
--- Architected for 0-Cost Deployment on Supabase / Render Free PostgreSQL
+-- ( Cái này sau khi đưa lên server thật mới áp dụng)
 -- ==========================================================================
 
 -- Enable PostGIS Extension for Geofencing & Location Queries (3-5km Radius)
