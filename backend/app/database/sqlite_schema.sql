@@ -1,5 +1,5 @@
 -- ==========================================================================
--- LocalVest Database Schema (SQLite) - Demo Cơ Sở Dữ Liệu ở chính máy local 
+-- LocalVest Database Schema (SQLite version)
 -- ==========================================================================
 
 -- 1. AUTH & USERS TABLE
@@ -21,9 +21,12 @@ CREATE TABLE IF NOT EXISTS kyc_documents (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
     doc_type TEXT NOT NULL,
-    doc_number TEXT,
     front_image_url TEXT NOT NULL,
     back_image_url TEXT,
+    dob TEXT,
+    current_address TEXT,
+    social_link TEXT,
+    bank_info TEXT,
     status TEXT DEFAULT 'pending',
     reviewer_note TEXT,
     submitted_at TEXT,
@@ -38,6 +41,7 @@ CREATE TABLE IF NOT EXISTS projects (
     category TEXT NOT NULL,
     icon TEXT DEFAULT '🌱',
     cover TEXT DEFAULT 'cover-a',
+    images TEXT DEFAULT '[]',
     description TEXT NOT NULL,
     location_name TEXT NOT NULL,
     target_amount REAL NOT NULL,
@@ -108,3 +112,7 @@ CREATE TABLE IF NOT EXISTS notifications (
     created_at TEXT,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+-- 8. INDEXES FOR FAST BOUNDING BOX SPATIAL SEARCH
+CREATE INDEX IF NOT EXISTS idx_projects_lat ON projects(lat);
+CREATE INDEX IF NOT EXISTS idx_projects_lng ON projects(lng);
