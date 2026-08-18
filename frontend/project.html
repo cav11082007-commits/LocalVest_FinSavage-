@@ -95,7 +95,7 @@
                 <div style="font-weight:600; font-size:14px;">${project.creator_name || project.creatorName}</div>
                 <div class="text-sm text-muted">Người sáng lập dự án</div>
               </div>
-              ${project.creatorVerified
+              ${(project.creator_verified || project.creatorVerified)
                 ? `<span class="badge badge-success">✓ Đã xác minh CCCD</span>`
                 : `<span class="badge badge-warning">Đang chờ xác minh</span>`}
             </div>

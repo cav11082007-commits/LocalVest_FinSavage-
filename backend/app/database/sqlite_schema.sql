@@ -1,5 +1,5 @@
 -- ==========================================================================
--- LocalVest Database Schema (SQLite version)
+-- LocalVest Database Schema (SQLite) - Demo Cơ Sở Dữ Liệu ở chính máy local 
 -- ==========================================================================
 
 -- 1. AUTH & USERS TABLE
@@ -38,7 +38,6 @@ CREATE TABLE IF NOT EXISTS projects (
     category TEXT NOT NULL,
     icon TEXT DEFAULT '🌱',
     cover TEXT DEFAULT 'cover-a',
-    images TEXT DEFAULT '[]',
     description TEXT NOT NULL,
     location_name TEXT NOT NULL,
     target_amount REAL NOT NULL,
