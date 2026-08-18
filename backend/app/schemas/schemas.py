@@ -84,4 +84,48 @@ class AdminApproveSchema(BaseModel):
 class AdminReleaseMilestoneSchema(BaseModel):
     projectId: str
     milestoneId: str
- 
+
+class FraudFlagSchema(BaseModel):
+    score: int
+    reason: str
+
+class MilestoneResponseSchema(BaseModel):
+    id: str
+    project_id: str
+    name: str
+    target_amount: float
+    released_amount: float
+    status: str
+    description: Optional[str] = ""
+    order_index: int
+    released_at: Optional[str] = None
+
+class ProjectResponseSchema(BaseModel):
+    id: str
+    owner_id: str
+    name: str
+    category: str
+    icon: Optional[str] = ""
+    cover: Optional[str] = ""
+    images: List[str] = []
+    description: Optional[str] = ""
+    kyc_front: Optional[str] = None
+    kyc_back: Optional[str] = None
+    location_name: str
+    target_amount: float
+    raised_amount: float
+    status: str
+    lat: float
+    lng: float
+    creator_name: str
+    creator_verified: bool
+    created_at: str
+    updated_at: str
+    milestones: List[MilestoneResponseSchema] = []
+    fraudFlag: Optional[FraudFlagSchema] = None
+
+class CampaignDetailResponse(BaseModel):
+    project: ProjectResponseSchema
+
+class CampaignListResponse(BaseModel):
+    projects: List[ProjectResponseSchema]

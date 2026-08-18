@@ -137,6 +137,7 @@ class LocalVestStore:
         
         for p in projects:
             p['creator_verified'] = bool(p['creator_verified'])
+            p['images'] = json.loads(p.get('images', '[]')) if p.get('images') else []
             cur.execute("SELECT * FROM milestones WHERE project_id = ? ORDER BY order_index", (p["id"],))
             p["milestones"] = [dict(row) for row in cur.fetchall()]
             
@@ -148,6 +149,16 @@ class LocalVestStore:
                 f["reasons"] = json.loads(f["reasons"]) if f["reasons"] else []
                 # map for frontend
                 p["fraudFlag"] = {"score": f["fraud_score"], "reason": f["reasons"][0] if f["reasons"] else "Không phát hiện dấu hiệu bất thường"}
+                
+            # Attach KYC
+            cur.execute("SELECT front_image_url, back_image_url FROM kyc_documents WHERE user_id = ? ORDER BY submitted_at DESC LIMIT 1", (p["owner_id"],))
+            kyc = cur.fetchone()
+            if kyc:
+                p["kyc_front"] = kyc["front_image_url"]
+                p["kyc_back"] = kyc["back_image_url"]
+            else:
+                p["kyc_front"] = None
+                p["kyc_back"] = None
         
         conn.close()
         return projects
@@ -162,6 +173,7 @@ class LocalVestStore:
             return None
         p = dict(row)
         p['creator_verified'] = bool(p['creator_verified'])
+        p['images'] = json.loads(p.get('images', '[]')) if p.get('images') else []
         cur.execute("SELECT * FROM milestones WHERE project_id = ? ORDER BY order_index", (p["id"],))
         p["milestones"] = [dict(row) for row in cur.fetchall()]
         
@@ -173,6 +185,15 @@ class LocalVestStore:
             f["reasons"] = json.loads(f["reasons"]) if f["reasons"] else []
             p["fraudFlag"] = {"score": f["fraud_score"], "reason": f["reasons"][0] if f["reasons"] else "Không phát hiện dấu hiệu bất thường"}
             
+        cur.execute("SELECT front_image_url, back_image_url FROM kyc_documents WHERE user_id = ? ORDER BY submitted_at DESC LIMIT 1", (p["owner_id"],))
+        kyc = cur.fetchone()
+        if kyc:
+            p["kyc_front"] = kyc["front_image_url"]
+            p["kyc_back"] = kyc["back_image_url"]
+        else:
+            p["kyc_front"] = None
+            p["kyc_back"] = None
+            
         conn.close()
         return p
 
@@ -180,8 +201,8 @@ class LocalVestStore:
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(
-            "INSERT INTO projects (id, owner_id, name, category, icon, cover, description, location_name, target_amount, raised_amount, status, lat, lng, creator_name, creator_verified, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (project_data["id"], project_data["owner_id"], project_data["name"], project_data["category"], project_data.get("icon", "🌱"), project_data.get("cover", "cover-a"), project_data["description"], project_data["location_name"], project_data["target_amount"], project_data.get("raised_amount", 0), project_data.get("status", "pending_review"), project_data["lat"], project_data["lng"], project_data["creator_name"], project_data.get("creator_verified", False), project_data.get("created_at", datetime.now().isoformat()), datetime.now().isoformat())
+            "INSERT INTO projects (id, owner_id, name, category, icon, cover, images, description, location_name, target_amount, raised_amount, status, lat, lng, creator_name, creator_verified, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (project_data["id"], project_data["owner_id"], project_data["name"], project_data["category"], project_data.get("icon", "🌱"), project_data.get("cover", "cover-a"), json.dumps(project_data.get("images", [])), project_data["description"], project_data["location_name"], project_data["target_amount"], project_data.get("raised_amount", 0), project_data.get("status", "pending_review"), project_data["lat"], project_data["lng"], project_data["creator_name"], project_data.get("creator_verified", False), project_data.get("created_at", datetime.now().isoformat()), datetime.now().isoformat())
         )
         
         for idx, m in enumerate(project_data.get("milestones", [])):
@@ -238,6 +259,14 @@ class LocalVestStore:
         entries = [dict(row) for row in cur.fetchall()]
         conn.close()
         return entries
+        
+    def check_txn_exists(self, gateway_txn_id: str) -> bool:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT 1 FROM ledger WHERE gateway_txn_id = ? LIMIT 1", (gateway_txn_id,))
+        exists = cur.fetchone() is not None
+        conn.close()
+        return exists
         
     def set_ai_flag(self, flag: dict):
         conn = get_db_connection()
