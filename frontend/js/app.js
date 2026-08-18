@@ -150,7 +150,11 @@ const LV = (function () {
   }
 
   function getUser() {
-    try { return JSON.parse(localStorage.getItem(KEYS.user)); } catch (e) { return null; }
+    try { 
+      const u = JSON.parse(localStorage.getItem(KEYS.user)); 
+      if (u) u.token = localStorage.getItem('lv_token') || u.token;
+      return u;
+    } catch (e) { return null; }
   }
   function getRegisteredEmails() {
     return JSON.parse(localStorage.getItem(KEYS.registeredEmails) || '[]');
@@ -188,7 +192,12 @@ const LV = (function () {
   // Async API calls to Backend
   async function getCampaigns() {
     try {
-      const res = await fetch('/api/campaigns');
+      const u = getUser();
+      const headers = {};
+      if (u && u.token) {
+        headers['Authorization'] = `Bearer ${u.token}`;
+      }
+      const res = await fetch('/api/campaigns', { headers });
       const data = await res.json();
       return data.projects || [];
     } catch (err) {

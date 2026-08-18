@@ -60,8 +60,13 @@ def root_health_check():
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 
+UPLOAD_DIR = os.path.join(BASE_DIR, "backend", "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+
 if os.path.exists(FRONTEND_DIR):
     app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+
 
 if settings.ENV != "prod":
     app.include_router(test_routes.router, prefix=settings.API_PREFIX)

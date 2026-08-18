@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS projects (
     category TEXT NOT NULL,
     icon TEXT DEFAULT '🌱',
     cover TEXT DEFAULT 'cover-a',
+    images TEXT DEFAULT '[]',
     description TEXT NOT NULL,
     location_name TEXT NOT NULL,
     target_amount REAL NOT NULL,
