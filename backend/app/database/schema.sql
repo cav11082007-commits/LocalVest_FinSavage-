@@ -25,7 +25,6 @@ CREATE TABLE IF NOT EXISTS kyc_documents (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     doc_type VARCHAR(50) NOT NULL, -- CCCD / Driver License
-    doc_number VARCHAR(50),
     front_image_url TEXT NOT NULL,
     back_image_url TEXT,
     status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),

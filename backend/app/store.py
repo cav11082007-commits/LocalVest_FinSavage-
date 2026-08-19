@@ -167,6 +167,53 @@ class LocalVestStore:
         conn.close()
         return projects
 
+    def get_projects_in_bounding_box(self, lat: float, lon: float, radius_km: float):
+        # 1 độ vĩ độ ~ 111km
+        lat_change = radius_km / 111.0
+        # 1 độ kinh độ ~ 111km * cos(lat)
+        lon_change = radius_km / (111.0 * math.cos(math.radians(lat)))
+        
+        min_lat = lat - lat_change
+        max_lat = lat + lat_change
+        min_lon = lon - lon_change
+        max_lon = lon + lon_change
+        
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT * FROM projects WHERE lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?",
+            (min_lat, max_lat, min_lon, max_lon)
+        )
+        projects = [dict(row) for row in cur.fetchall()]
+        
+        for p in projects:
+            p['creator_verified'] = bool(p['creator_verified'])
+            p['images'] = json.loads(p.get('images', '[]')) if p.get('images') else []
+            cur.execute("SELECT * FROM milestones WHERE project_id = ? ORDER BY order_index", (p["id"],))
+            p["milestones"] = [dict(row) for row in cur.fetchall()]
+            
+            cur.execute("SELECT * FROM ai_flags WHERE project_id = ?", (p["id"],))
+            flag = cur.fetchone()
+            if flag:
+                f = dict(flag)
+                f["is_suspicious"] = bool(f["is_suspicious"])
+                f["reasons"] = json.loads(f["reasons"]) if f["reasons"] else []
+                # map for frontend
+                p["fraudFlag"] = {"score": f["fraud_score"], "reason": f["reasons"][0] if f["reasons"] else "Không phát hiện dấu hiệu bất thường"}
+                
+            # Attach KYC
+            cur.execute("SELECT front_image_url, back_image_url FROM kyc_documents WHERE user_id = ? ORDER BY submitted_at DESC LIMIT 1", (p["owner_id"],))
+            kyc = cur.fetchone()
+            if kyc:
+                p["kyc_front"] = kyc["front_image_url"]
+                p["kyc_back"] = kyc["back_image_url"]
+            else:
+                p["kyc_front"] = None
+                p["kyc_back"] = None
+        
+        conn.close()
+        return projects
+
     def get_project_by_id(self, project_id: str):
         conn = get_db_connection()
         cur = conn.cursor()
@@ -298,8 +345,8 @@ class LocalVestStore:
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(
-            "INSERT INTO kyc_documents (id, user_id, doc_type, doc_number, front_image_url, back_image_url, status, submitted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (record["id"], record["user_id"], record["doc_type"], record.get("doc_number"), record["front_image_url"], record.get("back_image_url"), record.get("status", "pending"), record.get("submitted_at", datetime.now().isoformat()))
+            "INSERT INTO kyc_documents (id, user_id, doc_type, front_image_url, back_image_url, dob, current_address, social_link, bank_info, status, submitted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (record["id"], record["user_id"], record["doc_type"], record["front_image_url"], record.get("back_image_url"), record.get("dob"), record.get("current_address"), record.get("social_link"), json.dumps(record.get("bank_info", {})) if record.get("bank_info") else None, record.get("status", "pending"), record.get("submitted_at", datetime.now().isoformat()))
         )
         conn.commit()
         conn.close()

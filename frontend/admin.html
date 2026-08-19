@@ -315,7 +315,13 @@
     <div class="admin-table-wrap">
       <table class="admin-table">
         <thead>
-          <tr><th>Người dùng</th><th>Loại giấy tờ</th><th>Số giấy tờ</th><th>Ảnh mặt trước</th><th>Ngày nộp</th><th>Trạng thái</th><th>Hành động</th></tr>
+          <tr>
+            <th>Người dùng / Liên hệ</th>
+            <th>Loại giấy tờ</th>
+            <th>Ngày nộp</th>
+            <th>Trạng thái</th>
+            <th>Hành động</th>
+          </tr>
         </thead>
         <tbody id="kyc-body"></tbody>
       </table>
@@ -388,6 +394,17 @@
     <div id="milestone-select-list" style="display:flex;flex-direction:column;gap:10px;max-height:300px;overflow-y:auto;"></div>
     <div class="modal-actions">
       <button class="btn-admin btn-gold" id="milestone-cancel">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: KYC Details -->
+<div class="modal-overlay" id="kyc-detail-modal">
+  <div class="modal-box-dark" style="max-width:640px;">
+    <div class="modal-title-dark">Chi tiết Hồ sơ KYC</div>
+    <div style="font-size:13px; color:#c8d4e0; margin-bottom:16px; line-height:1.6;" id="kyc-detail-content"></div>
+    <div class="modal-actions">
+      <button class="btn-admin btn-gold" id="kyc-detail-close">Đóng</button>
     </div>
   </div>
 </div>
@@ -731,12 +748,8 @@
     const docs = kycDocsList;
     document.getElementById('kyc-body').innerHTML = docs.length ? docs.map((d, i) => `
       <tr>
-        <td style="font-size:12px;color:#8a9bb5;">${d.user_id}</td>
+        <td style="font-size:12px;color:#8a9bb5;"><strong>${d.full_name || d.user_id}</strong><br/>${d.email || ""}</td>
         <td><span class="badge badge-gold">${d.doc_type}</span></td>
-        <td style="font-family:monospace;">${d.doc_number}</td>
-        <td>
-          ${d.front_image_url ? `<a href="${d.front_image_url}" target="_blank" style="color:#d4a843;font-size:12px;">🖼 Xem ảnh</a>` : '<span style="color:#5a6b80">Chưa có</span>'}
-        </td>
         <td style="font-size:12px;color:#8a9bb5;">${d.submitted_at ? new Date(d.submitted_at).toLocaleString('vi-VN') : '—'}</td>
         <td>
           ${d.status === 'approved' ? '<span class="badge badge-success">Đã duyệt</span>'
@@ -744,14 +757,50 @@
             : '<span class="badge badge-warning">Chờ duyệt</span>'}
         </td>
         <td>
-          <div style="display:flex;gap:6px;">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn-admin btn-info" onclick="openKycDetail('${d.id}')">🔍 Chi tiết</button>
             <button class="btn-admin btn-approve" onclick="updateKyc('${d.id}','approved')">✓ Duyệt</button>
             <button class="btn-admin btn-reject" onclick="updateKyc('${d.id}','rejected')">✗ Từ chối</button>
           </div>
         </td>
       </tr>`).join('')
-      : `<tr><td colspan="7" style="text-align:center;color:#8a9bb5;padding:24px;">Chưa có hồ sơ KYC nào được nộp.</td></tr>`;
+      : `<tr><td colspan="5" style="text-align:center;color:#8a9bb5;padding:24px;">Chưa có hồ sơ KYC nào được nộp.</td></tr>`;
   }
+
+  
+  function openKycDetail(id) {
+    const k = kycDocsList.find(x => x.id === id);
+    if(!k) return;
+    
+    let bankHtml = '<span style="color:#8a9bb5">Chưa cung cấp</span>';
+    if(k.bank_info) {
+      try {
+        const b = typeof k.bank_info === 'string' ? JSON.parse(k.bank_info) : k.bank_info;
+        if(b && b.bank_name) {
+          bankHtml = `<strong>${b.bank_name}</strong> - ${b.account_number} (${b.account_name})`;
+        }
+      }catch(e){}
+    }
+    
+    document.getElementById('kyc-detail-content').innerHTML = `
+      <div style="margin-bottom:12px;"><strong>Người dùng:</strong> ${k.full_name || k.user_id}</div>
+      <div style="margin-bottom:12px;"><strong>Email:</strong> ${k.email || '—'}</div>
+      <div style="margin-bottom:12px;"><strong>Ngày sinh:</strong> ${k.dob || '—'}</div>
+      <div style="margin-bottom:12px;"><strong>Địa chỉ:</strong> ${k.current_address || '—'}</div>
+      <div style="margin-bottom:12px;"><strong>Mạng xã hội:</strong> ${k.social_link ? `<a href="${k.social_link}" target="_blank" style="color:#d4a843;">${k.social_link}</a>` : '—'}</div>
+      <div style="margin-bottom:12px;"><strong>Ngân hàng:</strong> ${bankHtml}</div>
+      
+      <div style="margin-top:16px; border-top: 1px solid rgba(255,255,255,0.1); padding-top:16px;">
+        <strong>Hình ảnh CCCD:</strong>
+        <div style="display:flex; gap:10px; margin-top:10px; overflow-x:auto;">
+          ${k.front_image_url ? `<div><div style="font-size:11px;color:#8a9bb5;margin-bottom:4px;">Mặt trước</div><img src="${k.front_image_url}" style="height:140px; border-radius:8px; border:1px solid rgba(255,255,255,0.2);"></div>` : ''}
+          ${k.back_image_url ? `<div><div style="font-size:11px;color:#8a9bb5;margin-bottom:4px;">Mặt sau</div><img src="${k.back_image_url}" style="height:140px; border-radius:8px; border:1px solid rgba(255,255,255,0.2);"></div>` : ''}
+        </div>
+      </div>
+    `;
+    document.getElementById('kyc-detail-modal').classList.add('open');
+  }
+  document.getElementById('kyc-detail-close').addEventListener('click', () => document.getElementById('kyc-detail-modal').classList.remove('open'));
 
   async function updateKyc(id, status) {
     const user = LV.getUser();

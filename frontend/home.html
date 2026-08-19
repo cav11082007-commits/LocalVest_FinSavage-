@@ -15,7 +15,7 @@
   <main class="page-main">
     <div class="container">
       <h1 class="page-title">Khám phá dự án quanh bạn</h1>
-      <p class="page-subtitle">Các dự án cộng đồng trong bán kính 3-5km, sắp xếp theo khoảng cách gần nhất.</p>
+      <p class="page-subtitle">Các dự án cộng đồng quanh bạn, sắp xếp theo khoảng cách gần nhất.</p>
 
       <div id="gps-banner"></div>
 
@@ -43,12 +43,16 @@
   let currentFilter = 'all';
   let locationGranted = false;
 
-  function renderBanner(state) {
+  function renderBanner(state, radius = null) {
     const el = document.getElementById('gps-banner');
     if (state === 'loading') {
-      el.innerHTML = `<div class="banner banner-info">📍 Đang xác định vị trí của bạn...</div>`;
+      el.innerHTML = `<div class="banner banner-info">📍 Đang xác định vị trí và tìm dự án quanh bạn...</div>`;
     } else if (state === 'granted') {
-      el.innerHTML = `<div class="banner banner-success">📍 Đã xác định vị trí — hiển thị dự án trong bán kính 5km quanh bạn.</div>`;
+      const r = radius ? radius : 5;
+      el.innerHTML = `<div class="banner banner-success">📍 Đã xác định vị trí — hiển thị dự án trong bán kính ${r}km quanh bạn.</div>`;
+    } else if (state === 'no_projects') {
+      const r = radius ? radius : 5;
+      el.innerHTML = `<div class="banner banner-warning">📍 Đã mở rộng bán kính lên ${r}km nhưng không có dự án. Đang hiển thị tất cả dự án.</div>`;
     } else {
       el.innerHTML = `<div class="banner banner-warning">📍 Vui lòng bật định vị để xem các dự án quanh bạn. Đang hiển thị danh sách mặc định.</div>`;
     }
@@ -58,10 +62,16 @@
 
   async function loadProjects(lat, lng) {
     if (lat && lng) {
-      allProjects = await LV.getNearbyCampaigns(lat, lng, 5.0);
+      const result = await LV.getNearbyCampaigns(lat, lng, 5.0);
+      allProjects = result.projects || [];
+      const finalRadius = result.radius_km || 5.0;
+      
       if (!allProjects || allProjects.length === 0) {
-        LV.toast('Không tìm thấy dự án lân cận 5km. Đang hiển thị tất cả dự án', 'warning');
+        renderBanner('no_projects', finalRadius);
+        LV.toast(`Không tìm thấy dự án lân cận ${finalRadius}km. Đang hiển thị tất cả dự án`, 'warning');
         allProjects = await LV.getCampaigns();
+      } else {
+        renderBanner('granted', finalRadius);
       }
     } else {
       allProjects = await LV.getCampaigns();
@@ -148,7 +158,7 @@
     renderBanner('loading');
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => { locationGranted = true; renderBanner('granted'); loadProjects(pos.coords.latitude, pos.coords.longitude); },
+        (pos) => { locationGranted = true; loadProjects(pos.coords.latitude, pos.coords.longitude); },
         () => { locationGranted = false; renderBanner('denied'); loadProjects(); },
         { timeout: 5000 }
       );

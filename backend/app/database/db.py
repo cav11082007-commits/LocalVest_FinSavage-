@@ -29,6 +29,20 @@ def migrate_db():
             conn.commit()
         except sqlite3.OperationalError:
             pass
+            
+    # Check if 'dob' column exists in 'kyc_documents' table
+    cur.execute("PRAGMA table_info(kyc_documents)")
+    kyc_columns = [info['name'] for info in cur.fetchall()]
+    if 'dob' not in kyc_columns:
+        try:
+            cur.execute("ALTER TABLE kyc_documents ADD COLUMN dob TEXT")
+            cur.execute("ALTER TABLE kyc_documents ADD COLUMN current_address TEXT")
+            cur.execute("ALTER TABLE kyc_documents ADD COLUMN social_link TEXT")
+            cur.execute("ALTER TABLE kyc_documents ADD COLUMN bank_info TEXT")
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass
+            
     conn.close()
 
 def is_db_empty():

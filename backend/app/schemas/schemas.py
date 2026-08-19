@@ -43,7 +43,6 @@ class LoginSchema(BaseModel):
 
 class KYCUploadSchema(BaseModel):
     doc_type: str = "CCCD"
-    doc_number: str
     front_image_url: str
     back_image_url: Optional[str] = None
 
@@ -128,4 +127,4 @@ class CampaignDetailResponse(BaseModel):
     project: ProjectResponseSchema
 
 class CampaignListResponse(BaseModel):
-    projects: List[ProjectResponseSchema]
+    projects: List[ProjectResponseSchema]
