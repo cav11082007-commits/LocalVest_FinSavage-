@@ -154,9 +154,31 @@ def create_campaign(
         "milestones": milestones_list,
         "created_at": datetime.now().isoformat()
     }
-    store.create_project(new_project)
+    # Disk paths for AI Background Worker
+    disk_proj_images = []
+    for rel_url in images_paths:
+        p = os.path.join(UPLOAD_DIR, "projects", project_id, os.path.basename(rel_url))
+        if os.path.exists(p):
+            disk_proj_images.append(p)
 
-    background_tasks.add_task(async_ai_flag_checker, project_id, new_project["name"], new_project["description"])
+    disk_kyc_images = []
+    if 'front_url' in locals() and front_url:
+        p = os.path.join(UPLOAD_DIR, "kyc", project_id, os.path.basename(front_url))
+        if os.path.exists(p):
+            disk_kyc_images.append(p)
+    if 'back_url' in locals() and back_url:
+        p = os.path.join(UPLOAD_DIR, "kyc", project_id, os.path.basename(back_url))
+        if os.path.exists(p):
+            disk_kyc_images.append(p)
+
+    background_tasks.add_task(
+        async_ai_flag_checker,
+        project_id,
+        new_project["name"],
+        new_project["description"],
+        project_image_paths=disk_proj_images,
+        kyc_image_paths=disk_kyc_images
+    )
 
     return {
         "message": "Tạo dự án thành công. Trạng thái: pending_review (Đang chờ AI & Admin).",

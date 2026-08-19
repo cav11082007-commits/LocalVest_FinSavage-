@@ -148,7 +148,11 @@ class LocalVestStore:
                 f["is_suspicious"] = bool(f["is_suspicious"])
                 f["reasons"] = json.loads(f["reasons"]) if f["reasons"] else []
                 # map for frontend
-                p["fraudFlag"] = {"score": f["fraud_score"], "reason": f["reasons"][0] if f["reasons"] else "Không phát hiện dấu hiệu bất thường"}
+                p["fraudFlag"] = {
+                    "score": f["fraud_score"],
+                    "reason": f["reasons"][0] if f["reasons"] else "Không phát hiện dấu hiệu bất thường",
+                    "reasons": f["reasons"]
+                }
                 
             # Attach KYC
             cur.execute("SELECT front_image_url, back_image_url FROM kyc_documents WHERE user_id = ? ORDER BY submitted_at DESC LIMIT 1", (p["owner_id"],))
@@ -230,7 +234,11 @@ class LocalVestStore:
             f = dict(flag)
             f["is_suspicious"] = bool(f["is_suspicious"])
             f["reasons"] = json.loads(f["reasons"]) if f["reasons"] else []
-            p["fraudFlag"] = {"score": f["fraud_score"], "reason": f["reasons"][0] if f["reasons"] else "Không phát hiện dấu hiệu bất thường"}
+            p["fraudFlag"] = {
+                "score": f["fraud_score"],
+                "reason": f["reasons"][0] if f["reasons"] else "Không phát hiện dấu hiệu bất thường",
+                "reasons": f["reasons"]
+            }
             
         cur.execute("SELECT front_image_url, back_image_url FROM kyc_documents WHERE user_id = ? ORDER BY submitted_at DESC LIMIT 1", (p["owner_id"],))
         kyc = cur.fetchone()
