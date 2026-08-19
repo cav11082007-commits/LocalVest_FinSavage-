@@ -1,0 +1,10 @@
+=== EMAIL SENT TO: cav11082007@gmail.com ===
+SUBJECT: [LocalVest] Mã OTP xác thực của bạn là: 299857
+OTP CODE: 299857
+----------------------------------------
+
+=== EMAIL SENT TO: admin@gmail.com ===
+SUBJECT: [LocalVest] Mã OTP xác thực của bạn là: 679409
+OTP CODE: 679409
+----------------------------------------
+
