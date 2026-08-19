@@ -351,4 +351,47 @@ class LocalVestStore:
         conn.commit()
         conn.close()
 
+    # ===== Notifications (task Bích — hệ thống thông báo) =====
+    # Bảng `notifications` đã có sẵn trong sqlite_schema.sql từ trước nhưng chưa có
+    # method/endpoint nào dùng tới — bổ sung theo đúng style các method phía trên.
+    def add_notification(self, notification: dict):
+        if not notification.get("user_id"):
+            return  # bảng yêu cầu user_id NOT NULL — dự án không có owner_id thì không có ai để báo
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO notifications (id, user_id, title, message, type, is_read, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (notification["id"], notification["user_id"], notification["title"], notification["message"],
+             notification["type"], int(notification.get("is_read", False)),
+             notification.get("created_at", datetime.now().isoformat()))
+        )
+        conn.commit()
+        conn.close()
+
+    def get_notifications_for_user(self, user_id: str):
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC", (user_id,))
+        rows = [dict(r) for r in cur.fetchall()]
+        conn.close()
+        for r in rows:
+            r["is_read"] = bool(r["is_read"])
+        return rows
+
+    def mark_notification_read(self, notification_id: str):
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("UPDATE notifications SET is_read = 1 WHERE id = ?", (notification_id,))
+        conn.commit()
+        conn.close()
+
+    def mark_all_notifications_read(self, user_id: str) -> int:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0", (user_id,))
+        count = cur.rowcount
+        conn.commit()
+        conn.close()
+        return count
+
 store = LocalVestStore()

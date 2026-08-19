@@ -37,6 +37,7 @@
         </div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
           <select class="input" id="project-select" style="width:auto; min-width:220px;"></select>
+          <span id="ws-status" class="text-sm text-muted"></span>
         </div>
       </div>
 
@@ -81,6 +82,11 @@
 
   let projects = [];
   let currentId = null;
+  let liveSocket = null;
+  // Toàn bộ dự án giờ là dữ liệu thật (đã bỏ hẳn mock localStorage), nên không còn cần
+  // phân biệt nhóm "LIVE" trong dropdown như bản trước — dự án nào cũng kết nối
+  // WebSocket thật khi được chọn.
+  const WS_URL = 'ws://' + (window.location.hostname || '127.0.0.1') + ':8000/ws/live-feed';
 
   async function init() {
     projects = await LV.getCampaigns();
@@ -95,7 +101,8 @@
       select.value = currentId;
     }
 
-    renderAll();
+    await renderAll();
+    connectLiveSocket();
 
     // Role-aware subtitle
     const sub = document.getElementById('dashboard-subtitle');
@@ -104,7 +111,52 @@
     }
   }
 
-  let simTimer = null;
+  function setWsStatus(text, cls) {
+    const el = document.getElementById('ws-status');
+    el.textContent = text;
+    el.style.color = cls === 'ok' ? 'var(--color-success)' : cls === 'err' ? 'var(--color-danger)' : '';
+  }
+
+  /**
+   * Kết nối WebSocket thật riêng cho dashboard (task 3.2 — Test Realtime WebSocket),
+   * lắng nghe CẢ HAI sự kiện backend phát: NEW_TRANSACTION (payments.py) và
+   * MILESTONE_RELEASED (admin.py). Tách khỏi LV.initLiveFeed() dùng chung toàn site
+   * trong app.js — cái đó chỉ xử lý NEW_TRANSACTION và chỉ hiện toast, không đủ cho
+   * yêu cầu "đảm bảo tính real-time của luồng phê duyệt Admin". Vì vậy trang này
+   * KHÔNG lắng nghe sự kiện LiveFeedUpdate của app.js nữa, tránh chèn trùng dòng.
+   */
+  function connectLiveSocket() {
+    if (liveSocket) { liveSocket.close(); liveSocket = null; }
+    setWsStatus('⏳ Đang kết nối WebSocket...', '');
+    liveSocket = new WebSocket(WS_URL);
+    liveSocket.onopen = () => setWsStatus('🟢 Đã kết nối — chờ giao dịch trực tiếp', 'ok');
+    liveSocket.onerror = () => setWsStatus('🔴 Lỗi kết nối WebSocket', 'err');
+    liveSocket.onclose = () => setWsStatus('⚪ Đã ngắt kết nối', '');
+    liveSocket.onmessage = async (msg) => {
+      const payload = JSON.parse(msg.data);
+      if (!payload.data || payload.data.projectId !== currentId) return;   // sự kiện của dự án khác, bỏ qua
+
+      const entry = payload.event === 'NEW_TRANSACTION'
+        ? { time: payload.timestamp, desc: `+${LV.formatVND(payload.data.amount)} từ ${payload.data.backerName} (Ký quỹ Escrow)`, amount: payload.data.amount, type: 'in' }
+        : payload.event === 'MILESTONE_RELEASED'
+          ? { time: payload.timestamp, desc: `Giải ngân mốc "${payload.data.milestoneName}"`, amount: payload.data.amount, type: 'out' }
+          : null;
+      if (!entry) return;
+
+      const tbody = document.getElementById('ledger-body');
+      if (tbody.innerHTML.includes('Chưa có giao dịch nào')) tbody.innerHTML = '';
+      tbody.insertAdjacentHTML('afterbegin', renderRow(entry, true));
+
+      const p = projects.find((x) => x.id === currentId);
+      const fetchedLedger = await LV.getLedger(currentId);
+      const totalIn = fetchedLedger.filter((x) => x.type === 'in').reduce((s, x) => s + x.amount, 0);
+      const totalOut = fetchedLedger.filter((x) => x.type === 'out').reduce((s, x) => s + x.amount, 0);
+      renderCharts(p, totalIn, totalOut, totalIn - totalOut);
+      LV.toast(`🔴 LIVE: ${entry.desc}`, payload.event === 'NEW_TRANSACTION' ? 'success' : 'info');
+    };
+  }
+
+  window.addEventListener('beforeunload', () => { if (liveSocket) liveSocket.close(); });
 
   function escrowStatus(p) {
     const released = (p.milestones || []).filter((m) => m.status === 'released').length;
@@ -141,35 +193,15 @@
     const totalOut = ledger.filter((e) => e.type === 'out').reduce((s, e) => s + e.amount, 0);
     renderCharts(p, totalIn, totalOut, totalIn - totalOut);
   }
-  window.addEventListener('LiveFeedUpdate', async (e) => {
-    if (e.detail.projectId === currentId) {
-      const p = projects.find(x => x.id === currentId);
-      const data = e.detail;
-      const entry = { 
-        time: new Date().toISOString(), 
-        amount: data.amount, 
-        type: 'in', 
-        desc: `+${LV.formatVND(data.amount)} từ ${data.backerName}` 
-      };
-      
-      const tbody = document.getElementById('ledger-body');
-      // Xóa dòng "Chưa có giao dịch nào" nếu có
-      if (tbody.innerHTML.includes('Chưa có giao dịch nào')) {
-        tbody.innerHTML = '';
-      }
-      tbody.insertAdjacentHTML('afterbegin', renderRow(entry, true));
-      
-      const fetchedLedger = await LV.getLedger(p.id);
-      const totalIn = fetchedLedger.filter((x) => x.type === 'in').reduce((s, x) => s + x.amount, 0);
-      const totalOut = fetchedLedger.filter((x) => x.type === 'out').reduce((s, x) => s + x.amount, 0);
-      renderCharts(p, totalIn, totalOut, totalIn - totalOut);
-    }
-  });
+  // Không dùng sự kiện LiveFeedUpdate của app.js ở đây nữa — connectLiveSocket() ở trên
+  // đã mở kết nối WebSocket riêng và xử lý đầy đủ hơn (cả milestone lẫn giao dịch),
+  // nghe thêm cái này sẽ chèn trùng dòng vào bảng.
 
   const select = document.getElementById('project-select');
-  select.addEventListener('change', () => {
+  select.addEventListener('change', async () => {
     currentId = select.value;
-    renderAll();
+    await renderAll();
+    connectLiveSocket();
   });
 
   // ===== CHARTS =====
