@@ -24,8 +24,16 @@ logs/
 .vscode/
 .idea/
 
+# docs
+docs/TASK_ASSIGNMENT.md
 docs/TEST_CASE_NAM.md
 docs/COMMIT_SUMMARY.md
 docs/FLOW5_IDEAS.md
 FLOW5_BACKEND_MIGRATION_PLAN.md
 FLOW3_4_REFACTOR_PLAN.md
+
+# Bỏ qua database
+*.db
+*.sqlite3
+
+

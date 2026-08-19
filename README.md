@@ -98,7 +98,7 @@ python run.py
 ```
 ---
 
-## 🚀 HƯỚNG PHÁT TRIỂN VỀ AI SAU NÀY CỦA NHÓM
+## HƯỚNG PHÁT TRIỂN VỀ AI SAU NÀY CỦA NHÓM
 
 Để tiếp tục hoàn thiện và đưa LocalVest lên một tầm cao mới sau phiên bản MVP này, dưới đây là các gợi ý phát triển sâu hơn về AI mà nhóm chúng em sẽ thực hiện:
 
