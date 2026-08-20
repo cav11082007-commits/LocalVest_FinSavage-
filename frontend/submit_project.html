@@ -828,9 +828,25 @@
       const target = document.getElementById('f-target');
       const targetOk = Number(target.value) >= 1000000;
       setError(target, !targetOk);
+      
       const milestones = readMilestones();
-      const msOk = milestones.length > 0;
+      let allFilled = true;
+      milestones.forEach(m => {
+          if (!m.name || m.amount <= 0 || !m.desc) {
+              allFilled = false;
+              m.rowEl.style.borderLeft = "4px solid var(--color-danger)";
+          } else {
+              m.rowEl.style.borderLeft = "none";
+          }
+      });
+      
+      const msOk = milestones.length > 0 && allFilled;
       document.getElementById('milestone-error').style.display = msOk ? 'none' : 'block';
+      if (!allFilled) {
+          document.getElementById('milestone-error').innerText = "Vui lòng điền đầy đủ thông tin (Tên, Số tiền, Mô tả) cho TẤT CẢ các mốc giải ngân đã tạo.";
+      } else {
+          document.getElementById('milestone-error').innerText = "Vui lòng tạo ít nhất 1 mốc giải ngân hợp lệ.";
+      }
 
       const sum = milestones.reduce((s, m) => s + m.amount, 0);
       const sumOk = !targetOk || sum <= Number(target.value);
