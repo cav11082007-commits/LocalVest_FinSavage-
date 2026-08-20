@@ -525,7 +525,7 @@
       document.getElementById('f-username').value = u.full_name || '';
       
       // Fetch latest profile to check KYC
-      fetch(LV.API_URL + '/auth/me', {
+      fetch('/api/auth/me', {
         headers: { 'Authorization': `Bearer ${u.token}` }
       }).then(res => res.json()).then(data => {
         if (data && data.user) {

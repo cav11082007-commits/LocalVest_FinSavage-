@@ -154,6 +154,9 @@ def create_campaign(
         "milestones": milestones_list,
         "created_at": datetime.now().isoformat()
     }
+    
+    store.create_project(new_project)
+
     # Disk paths for AI Background Worker
     disk_proj_images = []
     for rel_url in images_paths:

@@ -420,3 +420,26 @@ async def async_ai_flag_checker(
     return await _default_worker.check_project(
         project_id, name, description, image_path, project_image_paths, kyc_image_paths
     )
+
+if __name__ == "__main__":
+    # --- ĐÂY LÀ PHẦN CODE ĐỂ EM TEST (CHỈ CHẠY KHI GÕ LỆNH PYTHON TRỰC TIẾP TỪ FILE NÀY) ---
+    print("\n" + "="*50)
+    print("🚀 BẮT ĐẦU TEST LUỒNG GỌI TỪ AI_WORKER SANG AUDITOR")
+    print("="*50)
+    
+    # 1. Import hàm evaluate_disbursement từ file disbursement_auditor nằm cùng thư mục
+    from disbursement_auditor import evaluate_disbursement
+    
+    # 2. Giả lập gọi hàm xin giải ngân (truyền ID và 11 thông số dòng tiền)
+    project_id = "TEST_INTEGRATION_001"
+    fake_features = [0.1, 0.5, 0.8, 0.2, 0.9, 0.4, 0.3, 0.7, 0.6, 0.1, 0.5]
+    
+    print(f"⌛ Backend đang gọi AI kiểm tra giải ngân cho dự án: {project_id}...")
+    json_result = evaluate_disbursement(project_id, fake_features)
+    
+    # 3. In ra CỤC JSON mà Frontend sẽ nhận được để vẽ giao diện Admin
+    print("\n📦 ĐÂY LÀ CỤC JSON MÀ FRONTEND SẼ NHẬN ĐƯỢC ĐỂ VẼ LÊN MÀN HÌNH ADMIN:")
+    import json
+    parsed_json = json.loads(json_result)
+    print(json.dumps(parsed_json, indent=4, ensure_ascii=False))
+    print("="*50 + "\n")

@@ -36,6 +36,9 @@ async def momo_webhook(data: MoMoWebhookSchema):
     project = store.get_project_by_id(data.projectId)
     if not project:
         raise HTTPException(status_code=404, detail="Dự án không tồn tại")
+        
+    if project.get("status") in ["funded", "completed"]:
+        raise HTTPException(status_code=400, detail="Dự án này đã đạt đủ mục tiêu tài chính. Hệ thống tự động khóa sổ, không nhận thêm Quyên góp.")
 
     store.update_project_raised_amount(data.projectId, data.amount)
     # the method update_project_raised_amount also handles status update to funded if target reached.
@@ -80,6 +83,9 @@ async def mock_momo_pay(data: MockMoMoPaySchema):
     # Hybrid MVP Hack: Nếu backend chưa biết dự án này (vì frontend tự mock localStorage tạo ra),
     # tự động đồng bộ dự án vào bộ nhớ backend để luồng webhook và websocket không bị lỗi 404.
     project = store.get_project_by_id(data.projectId)
+    if project and project.get("status") in ["funded", "completed"]:
+        raise HTTPException(status_code=400, detail="Dự án này đã đạt đủ mục tiêu tài chính. Hệ thống tự động khóa sổ, không nhận thêm Quyên góp.")
+        
     if not project:
         store.create_project({
             "id": data.projectId,
@@ -111,3 +117,68 @@ async def mock_momo_pay(data: MockMoMoPaySchema):
     
     # Kích hoạt luồng webhook thật
     return await momo_webhook(webhook_data)
+
+from pydantic import BaseModel
+class DisburseRequest(BaseModel):
+    milestone_index: int
+
+@router.post("/disburse/{project_id}")
+async def disburse_milestone(project_id: str, payload: DisburseRequest):
+    project = store.get_project_by_id(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Không tìm thấy dự án")
+        
+    milestones = project.get("milestones", [])
+    if payload.milestone_index >= len(milestones):
+        raise HTTPException(status_code=400, detail="Mốc giải ngân không tồn tại")
+        
+    m = milestones[payload.milestone_index]
+    if m.get("status") == "released":
+        raise HTTPException(status_code=400, detail="Mốc này đã được giải ngân")
+        
+    import random
+    import json
+    from app.services.disbursement_auditor import evaluate_disbursement
+    
+    target = project.get("target_amount", 1)
+    amt = float(m.get("target_amount") or m.get("amount") or 0)
+    raised = float(project.get("raised_amount") or 0)
+    if raised < amt:
+        raise HTTPException(status_code=400, detail=f"Số dư quỹ Escrow không đủ! (Quỹ hiện có: {raised:,.0f}đ, Cần rút: {amt:,.0f}đ)")
+        
+    ratio = min(amt / target, 1.0) if target > 0 else 0.0
+    
+    # AI trigger config: Ratio > 0.4 triggers block
+    if ratio > 0.4:
+        features = [99.99] # pass invalid length to force fallback 99.99
+    else:
+        features = [0.05, 0.02] + [random.uniform(0,1) for _ in range(9)]
+                
+    ai_report_json = evaluate_disbursement(project_id, features)
+    ai_report = json.loads(ai_report_json)
+    
+    risk_score = ai_report.get("risk_score_percent", 0.0)
+    
+    if risk_score >= 50.0:
+        flag = store.get_ai_flag(project_id)
+        if flag:
+            flag["score"] = min(100, flag.get("score", 0) + 30)
+            reasons = flag.get("reason", "")
+            if "Bị AI chặn giải ngân" not in reasons:
+                flag["reason"] = reasons + " | Bị AI chặn giải ngân"
+            store.set_ai_flag(flag)
+        raise HTTPException(status_code=403, detail=ai_report)
+        
+    import uuid
+    store.update_milestone_status(m["id"], "released")
+    
+    entry = {
+        "id": f"tx_{uuid.uuid4().hex[:8]}",
+        "project_id": project_id,
+        "amount": amt,
+        "type": "milestone_release",
+        "description": f"Giải ngân mốc '{m.get('name')}'"
+    }
+    store.add_ledger_entry(entry)
+    
+    return {"status": "success", "ai_report": ai_report}
