@@ -1095,7 +1095,7 @@
             LV.toast(errorMsg, 'error');
           }
         } else {
-        LV.toast('Giải ngân thành công (Đã qua kiểm duyệt AI - Rủi ro: ' + (data.ai_report ? data.ai_report.fraud_score : 0) + '%)', 'success');
+        LV.toast('Giải ngân thành công (Đã qua kiểm duyệt AI - Rủi ro: ' + (data.ai_report ? data.ai_report.risk_score_percent : 0) + '%)', 'success');
         renderLedgerTab();
       }
     } catch(err) {

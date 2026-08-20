@@ -48,11 +48,15 @@ def update_kyc_status(kyc_id: str, payload: dict, current_user: dict = Depends(r
     cur = conn.cursor()
     cur.execute("UPDATE kyc_documents SET status = ? WHERE id = ?", (status, kyc_id))
     
+    # Also update user kyc_status
+    cur.execute("UPDATE users SET kyc_status = ? WHERE id = (SELECT user_id FROM kyc_documents WHERE id = ?)", (status, kyc_id))
+    
     if status == "approved":
-        # Also update user kyc_status
-        cur.execute("UPDATE users SET kyc_status = 'approved' WHERE id = (SELECT user_id FROM kyc_documents WHERE id = ?)", (kyc_id,))
         # Update projects to verified
         cur.execute("UPDATE projects SET creator_verified = 1 WHERE owner_id = (SELECT user_id FROM kyc_documents WHERE id = ?)", (kyc_id,))
+    elif status == "rejected":
+        # Ensure projects are un-verified if rejected
+        cur.execute("UPDATE projects SET creator_verified = 0 WHERE owner_id = (SELECT user_id FROM kyc_documents WHERE id = ?)", (kyc_id,))
         
     conn.commit()
     conn.close()
