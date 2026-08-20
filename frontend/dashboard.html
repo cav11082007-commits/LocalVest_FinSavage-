@@ -15,6 +15,14 @@
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
     tr.new-row { animation: flash 1.2s ease; }
     @keyframes flash { from { background: var(--color-primary-tint-10); } to { background: transparent; } }
+    /* Charts */
+    .chart-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    @media (max-width: 860px) { .chart-container { grid-template-columns: 1fr; } }
+    .chart-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--color-border); }
+    .chart-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: var(--color-text-dark); }
+    .chart-stats-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; justify-content: center; }
+    .chart-stat-pill { background: #f5f6fa; border-radius: 8px; padding: 8px 14px; font-size: 12px; text-align: center; flex: 1; }
+    .chart-stat-pill strong { font-size: 15px; display: block; }
   </style>
 </head>
 <body>
@@ -25,25 +33,30 @@
       <div class="flex justify-between items-center mb-16" style="flex-wrap: wrap; gap:12px;">
         <div>
           <h1 class="page-title" style="margin-bottom:4px;">Dòng tiền minh bạch</h1>
-          <p class="page-subtitle" style="margin-bottom:0;"><span class="live-dot"></span> Cập nhật thời gian thực từ tầng Gold (Medallion Lakehouse)</p>
+          <p class="page-subtitle" style="margin-bottom:0;" id="dashboard-subtitle"><span class="live-dot"></span> Dòng tiền theo thời gian thực</p>
         </div>
-        <select class="input" id="project-select" style="width:auto; min-width:260px;"></select>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <select class="input" id="project-select" style="width:auto; min-width:220px;"></select>
+          <span id="ws-status" class="text-sm text-muted"></span>
+        </div>
       </div>
 
       <div id="escrow-banner"></div>
 
-      <div class="stat-grid">
-        <div class="card card-pad">
-          <div class="text-sm text-muted">Tổng đã gọi vốn</div>
-          <div class="stat-value" id="stat-raised" style="color:var(--color-primary);">--</div>
+      <div class="chart-container">
+        <div class="chart-card">
+          <div class="chart-title">Phân bổ Dòng tiền (Escrow)</div>
+          <div class="chart-stats-row" id="chart-stats-row"></div>
+          <div style="position:relative; height:220px; width:100%;">
+            <canvas id="cashflow-chart"></canvas>
+          </div>
         </div>
-        <div class="card card-pad">
-          <div class="text-sm text-muted">Đã giải ngân</div>
-          <div class="stat-value" id="stat-released" style="color:var(--color-danger);">--</div>
-        </div>
-        <div class="card card-pad">
-          <div class="text-sm text-muted">Số dư trong escrow</div>
-          <div class="stat-value" id="stat-balance" style="color:var(--color-success);">--</div>
+        <div class="chart-card">
+          <div class="chart-title">Tiến độ Cột mốc & Tương lai</div>
+          <p class="text-sm text-muted" id="chart-modal-sub" style="margin-top:-10px; margin-bottom: 16px;"></p>
+          <div style="position:relative; height:260px; width:100%;">
+            <canvas id="milestone-chart"></canvas>
+          </div>
         </div>
       </div>
 
@@ -59,26 +72,96 @@
   </main>
 </div>
 
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script src="js/app.js"></script>
 <script>
   LV.requireLogin();
   LV.renderNavbar('dashboard');
 
-  const params = new URLSearchParams(window.location.search);
-  const projects = LV.getProjects();
-  const select = document.getElementById('project-select');
-  select.innerHTML = projects.map((p) => `<option value="${p.id}">${p.name}</option>`).join('');
+  let projects = [];
+  let currentId = null;
+  let liveSocket = null;
+  // Toàn bộ dự án giờ là dữ liệu thật (đã bỏ hẳn mock localStorage), nên không còn cần
+  // phân biệt nhóm "LIVE" trong dropdown như bản trước — dự án nào cũng kết nối
+  // WebSocket thật khi được chọn.
+  const WS_URL = 'ws://' + (window.location.hostname || '127.0.0.1') + ':8000/ws/live-feed';
 
-  let currentId = params.get('id') && projects.some((p) => p.id === params.get('id'))
-    ? params.get('id') : (projects[0] && projects[0].id);
-  select.value = currentId;
+  async function init() {
+    projects = await LV.getCampaigns();
+    const select = document.getElementById('project-select');
+    select.innerHTML = projects.map((p) => `<option value="${p.id}">${p.name}</option>`).join('');
 
-  let simTimer = null;
+    const params = new URLSearchParams(window.location.search);
+    currentId = params.get('id') && projects.some((p) => p.id === params.get('id'))
+      ? params.get('id') : (projects[0] && projects[0].id);
+    
+    if (currentId) {
+      select.value = currentId;
+    }
+
+    await renderAll();
+    connectLiveSocket();
+
+    // Role-aware subtitle
+    const sub = document.getElementById('dashboard-subtitle');
+    if (sub && LV.isAdmin()) {
+      sub.innerHTML = '<span class="live-dot"></span> Cập nhật thời gian thực từ tầng Gold (Medallion Lakehouse)';
+    }
+  }
+
+  function setWsStatus(text, cls) {
+    const el = document.getElementById('ws-status');
+    el.textContent = text;
+    el.style.color = cls === 'ok' ? 'var(--color-success)' : cls === 'err' ? 'var(--color-danger)' : '';
+  }
+
+  /**
+   * Kết nối WebSocket thật riêng cho dashboard (task 3.2 — Test Realtime WebSocket),
+   * lắng nghe CẢ HAI sự kiện backend phát: NEW_TRANSACTION (payments.py) và
+   * MILESTONE_RELEASED (admin.py). Tách khỏi LV.initLiveFeed() dùng chung toàn site
+   * trong app.js — cái đó chỉ xử lý NEW_TRANSACTION và chỉ hiện toast, không đủ cho
+   * yêu cầu "đảm bảo tính real-time của luồng phê duyệt Admin". Vì vậy trang này
+   * KHÔNG lắng nghe sự kiện LiveFeedUpdate của app.js nữa, tránh chèn trùng dòng.
+   */
+  function connectLiveSocket() {
+    if (liveSocket) { liveSocket.close(); liveSocket = null; }
+    setWsStatus('⏳ Đang kết nối WebSocket...', '');
+    liveSocket = new WebSocket(WS_URL);
+    liveSocket.onopen = () => setWsStatus('🟢 Đã kết nối — chờ giao dịch trực tiếp', 'ok');
+    liveSocket.onerror = () => setWsStatus('🔴 Lỗi kết nối WebSocket', 'err');
+    liveSocket.onclose = () => setWsStatus('⚪ Đã ngắt kết nối', '');
+    liveSocket.onmessage = async (msg) => {
+      const payload = JSON.parse(msg.data);
+      if (!payload.data || payload.data.projectId !== currentId) return;   // sự kiện của dự án khác, bỏ qua
+
+      const entry = payload.event === 'NEW_TRANSACTION'
+        ? { time: payload.timestamp, desc: `+${LV.formatVND(payload.data.amount)} từ ${payload.data.backerName} (Ký quỹ Escrow)`, amount: payload.data.amount, type: 'in' }
+        : payload.event === 'MILESTONE_RELEASED'
+          ? { time: payload.timestamp, desc: `Giải ngân mốc "${payload.data.milestoneName}"`, amount: payload.data.amount, type: 'out' }
+          : null;
+      if (!entry) return;
+
+      const tbody = document.getElementById('ledger-body');
+      if (tbody.innerHTML.includes('Chưa có giao dịch nào')) tbody.innerHTML = '';
+      tbody.insertAdjacentHTML('afterbegin', renderRow(entry, true));
+
+      const p = projects.find((x) => x.id === currentId);
+      const fetchedLedger = await LV.getLedger(currentId);
+      const totalIn = fetchedLedger.filter((x) => x.type === 'in').reduce((s, x) => s + x.amount, 0);
+      const totalOut = fetchedLedger.filter((x) => x.type === 'out').reduce((s, x) => s + x.amount, 0);
+      renderCharts(p, totalIn, totalOut, totalIn - totalOut);
+      LV.toast(`🔴 LIVE: ${entry.desc}`, payload.event === 'NEW_TRANSACTION' ? 'success' : 'info');
+    };
+  }
+
+  window.addEventListener('beforeunload', () => { if (liveSocket) liveSocket.close(); });
 
   function escrowStatus(p) {
-    const released = p.milestones.filter((m) => m.status === 'released').length;
+    const released = (p.milestones || []).filter((m) => m.status === 'released').length;
     if (released === 0) return { label: '[ĐANG KHOÁ]', cls: 'banner-warning' };
-    if (released < p.milestones.length) return { label: '[ĐÃ GIẢI NGÂN MỘT PHẦN]', cls: 'banner-info' };
+    if (released < (p.milestones || []).length) return { label: '[ĐÃ GIẢI NGÂN MỘT PHẦN]', cls: 'banner-info' };
     return { label: '[ĐÃ GIẢI NGÂN TOÀN BỘ]', cls: 'banner-success' };
   }
 
@@ -93,54 +176,88 @@
     </tr>`;
   }
 
-  function renderAll() {
-    const p = LV.getProject(currentId);
+  async function renderAll() {
+    const p = projects.find(x => x.id === currentId);
     if (!p) return;
     const status = escrowStatus(p);
     document.getElementById('escrow-banner').innerHTML =
       `<div class="banner ${status.cls}">🔒 Trạng thái tài khoản escrow: <strong style="margin-left:4px;">${status.label}</strong> — dự án "${p.name}"</div>`;
 
-    const ledger = LV.getLedger(p.id).slice().sort((a, b) => new Date(b.time) - new Date(a.time));
-    const totalIn = ledger.filter((e) => e.type === 'in').reduce((s, e) => s + e.amount, 0);
-    const totalOut = ledger.filter((e) => e.type === 'out').reduce((s, e) => s + e.amount, 0);
-    document.getElementById('stat-raised').textContent = LV.formatVND(totalIn);
-    document.getElementById('stat-released').textContent = LV.formatVND(totalOut);
-    document.getElementById('stat-balance').textContent = LV.formatVND(totalIn - totalOut);
-
+    const fetchedLedger = await LV.getLedger(p.id);
+    const ledger = fetchedLedger.slice().sort((a, b) => new Date(b.time) - new Date(a.time));
     document.getElementById('ledger-body').innerHTML = ledger.length
       ? ledger.map((e) => renderRow(e)).join('')
       : `<tr><td colspan="3" class="text-center text-muted">Chưa có giao dịch nào.</td></tr>`;
+      
+    const totalIn = ledger.filter((e) => e.type === 'in').reduce((s, e) => s + e.amount, 0);
+    const totalOut = ledger.filter((e) => e.type === 'out').reduce((s, e) => s + e.amount, 0);
+    renderCharts(p, totalIn, totalOut, totalIn - totalOut);
   }
+  // Không dùng sự kiện LiveFeedUpdate của app.js ở đây nữa — connectLiveSocket() ở trên
+  // đã mở kết nối WebSocket riêng và xử lý đầy đủ hơn (cả milestone lẫn giao dịch),
+  // nghe thêm cái này sẽ chèn trùng dòng vào bảng.
 
-  function startSimulation() {
-    if (simTimer) clearInterval(simTimer);
-    simTimer = setInterval(() => {
-      const p = LV.getProject(currentId);
-      if (!p || p.raised >= p.target) return;
-      const amt = [50000, 100000, 200000, 300000][Math.floor(Math.random() * 4)];
-      const entry = { time: new Date().toISOString(), amount: amt, type: 'in', desc: `+${LV.formatVND(amt)} từ ${LV.randomName()}` };
-      LV.pushLedger(p.id, entry);
-      const projectsAll = LV.getProjects();
-      const target = projectsAll.find((x) => x.id === p.id);
-      target.raised += amt;
-      LV.saveProjects(projectsAll);
-
-      const tbody = document.getElementById('ledger-body');
-      tbody.insertAdjacentHTML('afterbegin', renderRow(entry, true));
-      const totalIn = LV.getLedger(p.id).filter((e) => e.type === 'in').reduce((s, e) => s + e.amount, 0);
-      const totalOut = LV.getLedger(p.id).filter((e) => e.type === 'out').reduce((s, e) => s + e.amount, 0);
-      document.getElementById('stat-raised').textContent = LV.formatVND(totalIn);
-      document.getElementById('stat-balance').textContent = LV.formatVND(totalIn - totalOut);
-    }, 6000);
-  }
-
-  select.addEventListener('change', () => {
+  const select = document.getElementById('project-select');
+  select.addEventListener('change', async () => {
     currentId = select.value;
-    renderAll();
+    await renderAll();
+    connectLiveSocket();
   });
 
-  renderAll();
-  startSimulation();
+  // ===== CHARTS =====
+  let cashflowChart = null;
+  let milestoneChart = null;
+
+  function renderCharts(p, totalIn, totalOut, balance) {
+    const pct = p.target_amount > 0 ? Math.round(totalIn / p.target_amount * 100) : 0;
+    const releasedMs = (p.milestones || []).filter(m => m.status === 'released').length;
+
+    document.getElementById('chart-modal-sub').textContent = `Mục tiêu: ${LV.formatVND(p.target_amount)} • Đã đạt: ${pct}% • Hoàn thành: ${releasedMs}/${(p.milestones||[]).length} mốc`;
+    document.getElementById('chart-stats-row').innerHTML = [
+      {label: 'Tổng gọi vốn', val: LV.formatVND(totalIn), color: '#2f9e6e'},
+      {label: 'Đã giải ngân', val: LV.formatVND(totalOut), color: '#e55757'},
+      {label: 'Còn dư (Escrow)', val: LV.formatVND(balance), color: '#2f5496'},
+    ].map(s => `<div class="chart-stat-pill"><strong style="color:${s.color}">${s.val}</strong>${s.label}</div>`).join('');
+
+    // Doughnut
+    const ctx1 = document.getElementById('cashflow-chart').getContext('2d');
+    if (cashflowChart) cashflowChart.destroy();
+    cashflowChart = new Chart(ctx1, {
+      type: 'doughnut',
+      data: {
+        labels: ['Trong Escrow (Còn dư)', 'Đã giải ngân'],
+        datasets: [{ data: [balance, totalOut], backgroundColor: ['rgba(47,84,150,0.85)', 'rgba(229,87,87,0.85)'], borderWidth: 2 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } } }
+    });
+
+    // Milestone bar
+    const milestones = (p.milestones || []);
+    const ctx2 = document.getElementById('milestone-chart').getContext('2d');
+    if (milestoneChart) milestoneChart.destroy();
+    if (milestones.length) {
+      milestoneChart = new Chart(ctx2, {
+        type: 'bar',
+        data: {
+          labels: milestones.map(m => m.name.slice(0,25) + '...'),
+          datasets: [{
+            label: 'Tiến độ hoàn thành',
+            data: milestones.map(m => m.status === 'released' ? 100 : m.status === 'pending' ? 50 : 0),
+            backgroundColor: milestones.map(m => m.status === 'released' ? 'rgba(47,158,110,0.85)' : m.status === 'pending' ? 'rgba(212,168,67,0.85)' : 'rgba(200,200,200,0.4)'),
+            borderRadius: 6,
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true, maintainAspectRatio: false,
+          scales: { x: { min: 0, max: 100, ticks: { callback: v => v + '%' } } },
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw === 100 ? 'Đã giải ngân' : ctx.raw === 50 ? 'Đang duyệt / Sắp tới' : 'Mục tiêu tương lai' } } }
+        }
+      });
+    }
+  }
+
+  init();
 </script>
 </body>
 </html>

@@ -40,20 +40,25 @@
   LV.renderNavbar('home');
 
   const MIN_AMOUNT = 20000;
-  const params = new URLSearchParams(window.location.search);
-  const project = LV.getProject(params.get('id'));
-  const root = document.getElementById('checkout-root');
+  let project;
 
-  if (!project) {
-    root.innerHTML = `<div class="card card-pad text-center">
-      <p class="text-muted">Không tìm thấy dự án này.</p>
-      <a class="btn btn-primary mt-16" href="home.html">Về trang khám phá</a>
-    </div>`;
-  } else {
-    renderForm();
+  async function init() {
+    const params = new URLSearchParams(window.location.search);
+    project = await LV.getCampaignDetail(params.get('id'));
+    const root = document.getElementById('checkout-root');
+
+    if (!project) {
+      root.innerHTML = `<div class="card card-pad text-center">
+        <p class="text-muted">Không tìm thấy dự án này.</p>
+        <a class="btn btn-primary mt-16" href="home.html">Về trang khám phá</a>
+      </div>`;
+    } else {
+      renderForm();
+    }
   }
 
   function renderForm() {
+    const root = document.getElementById('checkout-root');
     root.innerHTML = `
       <a href="project.html?id=${project.id}" class="text-sm text-muted">← Quay lại dự án</a>
       <h1 class="page-title mt-16">Đóng góp cho dự án</h1>
@@ -117,51 +122,70 @@
     });
   }
 
-  function completeDonation(amount, donorName) {
-    const projects = LV.getProjects();
-    const p = projects.find((x) => x.id === project.id);
-    p.raised += amount;
-    LV.saveProjects(projects);
-    const entry = {
-      time: new Date().toISOString(),
-      amount, type: 'in',
-      desc: `+${LV.formatVND(amount)} từ ${donorName}`,
-    };
-    LV.pushLedger(project.id, entry);
+  async function completeDonation(amount, donorName) {
+    const root = document.getElementById('checkout-root');
+    try {
+      const response = await fetch('/api/payments/mock-momo-pay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: project.id,
+          amount: amount,
+          backerName: donorName,
+          projectName: project.name,
+          targetAmount: project.target_amount,
+          currentRaised: project.raised_amount
+        })
+      });
+      
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.detail || 'Lỗi thanh toán');
+      }
 
-    const ticketId = 'LV-' + Date.now().toString(36).toUpperCase();
-    root.innerHTML = `
-      <div class="card card-pad text-center">
-        <div style="font-size:40px;">🎉</div>
-        <h2 style="margin:8px 0 4px;">Cảm ơn bạn đã đóng góp!</h2>
-        <p class="text-muted">Bạn vừa đóng góp <strong>${LV.formatVND(amount)}</strong> cho dự án<br>"${p.name}"</p>
+      const p = project; // Keep reference
+      const ticketId = result.ledger ? result.ledger.id : ('LV-' + Date.now().toString(36).toUpperCase());
+      
+      root.innerHTML = `
+        <div class="card card-pad text-center">
+          <div style="font-size:40px;">🎉</div>
+          <h2 style="margin:8px 0 4px;">Cảm ơn bạn đã đóng góp!</h2>
+          <p class="text-muted">Bạn vừa đóng góp <strong>${LV.formatVND(amount)}</strong> cho dự án<br>"${p.name}"</p>
 
-        <div class="qr-mock mt-16"></div>
-        <div class="text-sm text-muted">Vé điện tử mô phỏng</div>
-        <div style="font-weight:700; letter-spacing: 1px; margin: 4px 0 16px;">${ticketId}</div>
+          <div class="qr-mock mt-16"></div>
+          <div class="text-sm text-muted">Vé điện tử (Từ API Backend)</div>
+          <div style="font-weight:700; letter-spacing: 1px; margin: 4px 0 16px;">${ticketId}</div>
 
-        <div class="card" style="text-align:left; border-color: var(--color-border);">
-          <div class="flex justify-between items-center" style="padding:12px 16px; border-bottom:1px solid var(--color-border);">
-            <span class="text-sm text-muted">Người đóng góp</span><span style="font-weight:600;">${donorName}</span>
+          <div class="card" style="text-align:left; border-color: var(--color-border);">
+            <div class="flex justify-between items-center" style="padding:12px 16px; border-bottom:1px solid var(--color-border);">
+              <span class="text-sm text-muted">Người đóng góp</span><span style="font-weight:600;">${donorName}</span>
+            </div>
+            <div class="flex justify-between items-center" style="padding:12px 16px; border-bottom:1px solid var(--color-border);">
+              <span class="text-sm text-muted">Số tiền</span><span style="font-weight:600;">${LV.formatVND(amount)}</span>
+            </div>
+            <div class="flex justify-between items-center" style="padding:12px 16px; border-bottom:1px solid var(--color-border);">
+              <span class="text-sm text-muted">Thời gian</span><span style="font-weight:600;">${LV.formatDate(new Date().toISOString())}</span>
+            </div>
+            <div class="flex justify-between items-center" style="padding:12px 16px;">
+              <span class="text-sm text-muted">Trạng thái</span><span class="badge badge-success">Thành công</span>
+            </div>
           </div>
-          <div class="flex justify-between items-center" style="padding:12px 16px; border-bottom:1px solid var(--color-border);">
-            <span class="text-sm text-muted">Số tiền</span><span style="font-weight:600;">${LV.formatVND(amount)}</span>
-          </div>
-          <div class="flex justify-between items-center" style="padding:12px 16px; border-bottom:1px solid var(--color-border);">
-            <span class="text-sm text-muted">Thời gian</span><span style="font-weight:600;">${LV.formatDate(new Date().toISOString())}</span>
-          </div>
-          <div class="flex justify-between items-center" style="padding:12px 16px;">
-            <span class="text-sm text-muted">Trạng thái</span><span class="badge badge-success">Thành công (mô phỏng)</span>
+
+          <div class="flex gap-12 mt-24" style="justify-content:center; flex-wrap: wrap;">
+            <a class="btn btn-outline" href="project.html?id=${p.id}">Về trang dự án</a>
+            <a class="btn btn-primary" href="dashboard.html?id=${p.id}">Xem dòng tiền minh bạch</a>
           </div>
         </div>
-
-        <div class="flex gap-12 mt-24" style="justify-content:center; flex-wrap: wrap;">
-          <a class="btn btn-outline" href="project.html?id=${p.id}">Về trang dự án</a>
-          <a class="btn btn-primary" href="dashboard.html?id=${p.id}">Xem dòng tiền minh bạch</a>
-        </div>
-      </div>
-    `;
+      `;
+    } catch (err) {
+      LV.toast(err.message, 'error');
+      const btn = document.getElementById('confirm-btn');
+      btn.disabled = false;
+      btn.textContent = 'Xác nhận đóng góp';
+    }
   }
+
+  init();
 </script>
 </body>
 </html>

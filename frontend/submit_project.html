@@ -1,316 +1,989 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Đăng dự án - LocalVest</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <link rel="stylesheet" href="css/style.css">
   <style>
-    .submit-wrap { max-width: 680px; margin: 0 auto; }
-    .upload-box {
-      border: 2px dashed var(--color-border-light); border-radius: var(--radius-md); padding: 20px;
-      text-align: center; color: var(--color-text-muted); font-size: 13px; cursor: pointer; background: #F8FAFC;
+    .submit-wrap {
+      max-width: 820px;
+      margin: 0 auto;
     }
-    .upload-box:hover { background: #F1F5F9; }
-    .thumb-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
-    .thumb { width: 72px; height: 72px; border-radius: var(--radius-sm); object-fit: cover; border: 1px solid var(--color-border); }
-    .thumb-chip { display: flex; align-items: center; gap: 6px; background: #F1F5F9; border-radius: var(--radius-sm); padding: 6px 10px; font-size: 12px; }
-    .milestone-row { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 14px; margin-bottom: 12px; position: relative; }
-    .milestone-remove { position: absolute; top: 10px; right: 10px; font-size: 12px; color: var(--color-danger); background: none; border: none; }
+
+    /* ---- Stepper (kiểu số tròn + gạch nối, giống bản thiết kế) ---- */
+    .sp-stepper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .sp-step {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .sp-step-num {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #E5E7EB;
+      color: #9CA3AF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      transition: background .15s, color .15s;
+    }
+
+    .sp-step-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #9CA3AF;
+      transition: color .15s;
+    }
+
+    .sp-step.active .sp-step-num {
+      background: var(--color-primary);
+      color: #fff;
+    }
+
+    .sp-step.active .sp-step-label {
+      color: var(--color-primary);
+      font-weight: 600;
+    }
+
+    .sp-step.done .sp-step-num {
+      background: var(--color-text-dark);
+      color: #fff;
+    }
+
+    .sp-step.done .sp-step-label {
+      color: var(--color-text-dark);
+      font-weight: 600;
+    }
+
+    .sp-step-line {
+      flex: 1;
+      height: 2px;
+      background: var(--color-border);
+    }
+
+    .sp-step-line.done {
+      background: var(--color-text-dark);
+    }
+
+    .sp-hr {
+      height: 1px;
+      background: var(--color-border);
+      margin: 20px 0 24px;
+    }
+
+    .form-step {
+      display: none;
+    }
+
+    .form-step.active {
+      display: block;
+    }
+
+    /* ---- Khối upload tài liệu (ảnh minh chứng + KYC): khung bo góc, icon + chữ hướng dẫn bên trong ---- */
+    .doc-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .doc-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .kyc-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    @media (max-width: 640px) {
+
+      .doc-grid,
+      .kyc-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .doc-box {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 120px;
+      padding: 16px 12px;
+      text-align: center;
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-md);
+      background: #fff;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      overflow: hidden;
+    }
+
+    .doc-box:hover,
+    .doc-box:focus-within {
+      border-color: var(--color-primary);
+      background: var(--color-primary-tint-07);
+    }
+
+    .doc-box.has-file {
+      border-color: var(--color-success);
+    }
+
+    .doc-box.has-error {
+      border-color: var(--color-danger);
+    }
+
+    .doc-icon svg {
+      width: 20px;
+      height: 20px;
+      color: var(--color-text-muted);
+      stroke-width: 1.75;
+    }
+
+    .doc-box:hover .doc-icon svg {
+      color: var(--color-primary);
+    }
+
+    /* Chữ hướng dẫn trong khung: nhỏ hơn hoặc bằng các chữ khác trong form (label 14px) */
+    .doc-text {
+      font-size: 13px;
+      color: var(--color-text-mutest);
+      line-height: 1.4;
+    }
+
+    .doc-box img.doc-thumb {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .doc-filename {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 4px 8px;
+      font-size: 11px;
+      color: #fff;
+      background: rgba(0, 0, 0, .55);
+      text-align: center;
+      word-break: break-all;
+    }
+
+    /* Dòng nhắc lỗi dưới từng khung: nhỏ hơn hoặc bằng chữ khác, chỉ hiện khi dung lượng vượt quá 10MB */
+    .doc-error-text {
+      display: none;
+      font-size: 12px;
+      color: var(--color-danger);
+      margin-top: 6px;
+    }
+
+    .doc-error-text.show {
+      display: block;
+    }
+
+    #step2-required-error {
+      display: none;
+      font-size: 12px;
+    }
+
+    #step2-required-error.show {
+      display: block;
+    }
+
+    .lock-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--color-primary-tint-10);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .lock-badge svg {
+      width: 11px;
+      height: 11px;
+      color: var(--color-primary);
+    }
+
+    /* ---- Mốc giải ngân ---- */
+    .milestone-row {
+      background: #F3F4F6;
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-bottom: 12px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .milestone-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .milestone-head span {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--color-text-dark);
+    }
+
+    .milestone-remove {
+      font-size: 12px;
+      color: var(--color-danger);
+      background: none;
+      border: none;
+      font-weight: 600;
+    }
+
+    /* #milestone-error / #milestone-sum-error nằm ngoài .field nên không được style bởi ".field .error-text";
+       khai báo riêng để cỡ chữ đồng nhất (12px) và ẩn mặc định giống các dòng lỗi khác. */
+    #milestone-error,
+    #milestone-sum-error {
+      display: none;
+      font-size: 12px;
+      color: var(--color-danger);
+    }
   </style>
 </head>
+
 <body>
-<div class="page-shell">
-  <div id="navbar-root"></div>
-  <main class="page-main">
-    <div class="container submit-wrap">
-      <h1 class="page-title">Đăng dự án của bạn</h1>
-      <p class="page-subtitle">Điền thông tin bên dưới. Dự án sẽ được đội ngũ LocalVest kiểm duyệt trước khi hiển thị công khai.</p>
+  <div class="page-shell">
+    <div id="navbar-root"></div>
+    <main class="page-main">
+      <div class="container submit-wrap">
+        <div class="card card-pad" id="register-card">
 
-      <div class="stepper">
-        <div class="step active" data-step="1"><span class="step-num">1</span> Thông tin</div>
-        <div class="step-sep"></div>
-        <div class="step" data-step="2"><span class="step-num">2</span> Hình ảnh</div>
-        <div class="step-sep"></div>
-        <div class="step" data-step="3"><span class="step-num">3</span> Tài chính</div>
+          <div class="sp-stepper" id="sp-stepper">
+            <div class="sp-step active" data-step="1">
+              <div class="sp-step-num">1</div>
+              <span class="sp-step-label">Người dùng</span>
+            </div>
+            <div class="sp-step-line" data-line="1"></div>
+            <div class="sp-step" data-step="2">
+              <div class="sp-step-num">2</div>
+              <span class="sp-step-label">Dự án</span>
+            </div>
+            <div class="sp-step-line" data-line="2"></div>
+            <div class="sp-step" data-step="3">
+              <div class="sp-step-num">3</div>
+              <span class="sp-step-label">Tài liệu</span>
+            </div>
+            <div class="sp-step-line" data-line="3"></div>
+            <div class="sp-step" data-step="4">
+              <div class="sp-step-num">4</div>
+              <span class="sp-step-label">Tài chính</span>
+            </div>
+          </div>
+          <div class="sp-hr"></div>
+
+          <h1 class="page-title" style="font-size:22px;">Đăng ký dự án gọi vốn</h1>
+          <p class="page-subtitle">Vui lòng cung cấp đầy đủ thông tin để dự án được đội ngũ LocalVest kiểm duyệt trước
+            khi hiển thị công khai.</p>
+
+          <form id="submit-form" novalidate>
+            <!-- STEP 1: NGƯỜI DÙNG & LIÊN HỆ -->
+            <div class="form-step active" data-step="1" id="step-user-info">
+              <div id="kyc-verified-msg" style="display:none; padding:16px; background:#D1FAE5; color:#065F46; border-radius:8px; margin-bottom:16px;">
+                ✅ Tài khoản của bạn đã được xác minh định danh. Thông tin liên hệ và Ngân hàng sẽ sử dụng hồ sơ đã lưu.
+              </div>
+              <div id="kyc-form-fields">
+                <div class="field">
+                  <label>Họ và Tên <span style="color:var(--color-danger)">*</span></label>
+                  <input type="text" class="input" id="f-full-name" placeholder="Nhập họ và tên của bạn" required>
+                  <div class="error-text">Vui lòng nhập Họ và Tên.</div>
+                </div>
+                <div class="field">
+                  <label>Email liên hệ <span style="color:var(--color-danger)">*</span></label>
+                  <input type="email" class="input" id="f-email" placeholder="Nhập email liên hệ" required>
+                  <div class="error-text">Vui lòng nhập Email liên hệ.</div>
+                </div>
+                <div class="field">
+                  <label>Số điện thoại liên hệ <span style="color:var(--color-danger)">*</span></label>
+                  <input type="text" class="input" id="f-phone" placeholder="Nhập số điện thoại liên hệ" required>
+                  <div class="error-text">Vui lòng nhập Số điện thoại liên hệ.</div>
+                </div>
+                <div class="field">
+                  <label>Tên LocalVest Username <span style="color:var(--color-danger)">*</span></label>
+                  <input type="text" class="input" id="f-username" placeholder="Nhập tên Username của bạn" required>
+                  <div class="error-text">Vui lòng nhập Tên LocalVest Username.</div>
+                </div>
+                <div class="field">
+                  <label>Ngày/tháng/năm sinh <span style="color:var(--color-danger)">*</span></label>
+                  <input type="text" class="input" id="f-dob" placeholder="dd/mm/yyyy" required>
+                  <div class="error-text">Vui lòng nhập ngày sinh.</div>
+                </div>
+                <div class="field">
+                  <label>Địa chỉ hiện tại <span style="color:var(--color-danger)">*</span></label>
+                  <input type="text" class="input" id="f-address" placeholder="Nhập địa chỉ của bạn" required>
+                  <div class="error-text">Vui lòng nhập địa chỉ.</div>
+                </div>
+                <div class="field">
+                  <label>Tài khoản mạng xã hội (vui lòng gửi đường link) <span style="color:var(--color-danger)">*</span></label>
+                  <input type="url" class="input" id="f-social" placeholder="https://facebook.com/..." required>
+                  <div class="error-text">Vui lòng nhập link mạng xã hội hợp lệ.</div>
+                </div>
+                <div class="sp-hr"></div>
+                <h3 style="margin-bottom:12px; font-size:15px; font-weight:600;">Thông tin Giải ngân</h3>
+                <div class="field">
+                  <label>Ngân hàng <span style="color:var(--color-danger)">*</span></label>
+                  <input type="text" class="input" id="f-bank-name" placeholder="VD: Vietcombank, MB Bank" required>
+                  <div class="error-text">Vui lòng nhập tên ngân hàng.</div>
+                </div>
+                <div class="field">
+                  <label>Số tài khoản <span style="color:var(--color-danger)">*</span></label>
+                  <input type="text" class="input" id="f-bank-acc-num" placeholder="Nhập số tài khoản" required>
+                  <div class="error-text">Vui lòng nhập số tài khoản hợp lệ.</div>
+                </div>
+                <div class="field">
+                  <label>Tên chủ tài khoản <span style="color:var(--color-danger)">*</span></label>
+                  <input type="text" class="input" id="f-bank-acc-name" placeholder="VD: NGUYEN VAN A" required>
+                  <div class="error-text">Vui lòng nhập tên chủ tài khoản (Viết HOA không dấu trùng khớp CCCD).</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- STEP 2: THÔNG TIN DỰ ÁN -->
+            <div class="form-step" data-step="2">
+              <div class="field">
+                <label>Tên dự án <span style="color:var(--color-danger)">*</span></label>
+                <input type="text" class="input" id="f-name" placeholder="VD: Phòng học miễn phí cho trẻ em xóm trọ"
+                  required>
+                <div class="error-text">Vui lòng nhập tên dự án (tối thiểu 3 ký tự).</div>
+              </div>
+              <div class="field">
+                <label>Mô tả dự án <span style="color:var(--color-danger)">*</span></label>
+                <textarea class="input" id="f-desc" rows="5"
+                  placeholder="Mô tả vấn đề, giải pháp và tác động cộng đồng..."></textarea>
+                <div class="hint"><span id="word-count">0</span>/500 từ</div>
+                <div class="error-text">Mô tả không được vượt quá 500 từ và không được để trống.</div>
+              </div>
+              <div class="field">
+                <label>Khu vực <span style="color:var(--color-danger)">*</span></label>
+                <div class="row-3">
+                  <div>
+                    <select class="input" id="f-province">
+                      <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
+                      <option value="Hà Nội">Hà Nội</option>
+                      <option value="Đà Nẵng">Đà Nẵng</option>
+                      <option value="Cần Thơ">Cần Thơ</option>
+                      <option value="Hải Phòng">Hải Phòng</option>
+                    </select>
+                  </div>
+                  <div>
+                    <select class="input" id="f-district"></select>
+                    <div class="error-text">Vui lòng chọn Quận/Huyện.</div>
+                  </div>
+                  <div>
+                    <select class="input" id="f-ward"></select>
+                    <div class="error-text">Vui lòng chọn Phường/Xã.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- STEP 3: TÀI LIỆU -->
+            <div class="form-step" data-step="3">
+              <div class="field">
+                <label>Tải lên tài liệu chứng minh <span style="color:var(--color-danger)">*</span></label>
+                <div class="doc-grid" id="photo-grid"></div>
+              </div>
+              <div class="error-text" id="step2-required-error" style="margin-top:-8px; color: #DC2626;">Vui lòng tải
+                lên đầy đủ ảnh minh chứng và CCCD 2 mặt trước khi tiếp tục.</div>
+
+              <div class="field" style="margin-top:28px;">
+                <label>Xác thực danh tính (KYC) <span style="color:var(--color-danger)">*</span></label>
+                <div class="kyc-grid">
+                  <div class="doc-item">
+                    <label class="doc-box" id="id-front-box">
+                      <input type="file" id="f-id-front" accept="image/jpeg,image/png" class="hidden">
+                      <div class="doc-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                          <rect x="3" y="5" width="18" height="14" rx="2" />
+                          <circle cx="8.5" cy="11" r="2" />
+                          <path d="M5.5 16c0-1.4 1.3-2.5 3-2.5s3 1.1 3 2.5" />
+                          <line x1="14" y1="9.5" x2="18" y2="9.5" />
+                          <line x1="14" y1="12.5" x2="18" y2="12.5" />
+                        </svg>
+                      </div>
+                      <span class="doc-text" id="id-front-text">Tải lên mặt trước CCCD</span>
+                      <div class="lock-badge" title="Chỉ dùng nội bộ để KYC, không công khai">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="5" y="11" width="14" height="9" rx="1.5" />
+                          <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                        </svg>
+                      </div>
+                    </label>
+                    <div class="doc-error-text" id="id-front-error">File không hợp lệ hoặc quá lớn (Tối đa 10MB)</div>
+                  </div>
+                  <div class="doc-item">
+                    <label class="doc-box" id="id-back-box">
+                      <input type="file" id="f-id-back" accept="image/jpeg,image/png" class="hidden">
+                      <div class="doc-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                          <rect x="3" y="5" width="18" height="14" rx="2" />
+                          <line x1="6.5" y1="9" x2="17.5" y2="9" />
+                          <line x1="6.5" y1="12" x2="17.5" y2="12" />
+                          <line x1="6.5" y1="15" x2="13" y2="15" />
+                        </svg>
+                      </div>
+                      <span class="doc-text" id="id-back-text">Tải lên mặt sau CCCD</span>
+                      <div class="lock-badge" title="Chỉ dùng nội bộ để KYC, không công khai">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="5" y="11" width="14" height="9" rx="1.5" />
+                          <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                        </svg>
+                      </div>
+                    </label>
+                    <div class="doc-error-text" id="id-back-error">File không hợp lệ hoặc quá lớn (Tối đa 10MB)</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- STEP 4: TÀI CHÍNH -->
+            <div class="form-step" data-step="4">
+              <div class="field">
+                <label>Số tiền mục tiêu <span style="color:var(--color-danger)">*</span></label>
+                <input type="number" class="input" id="f-target" min="1000000" step="100000"
+                  placeholder="vd: 100.000.000 VND">
+                <div class="error-text">Số tiền mục tiêu phải từ 1.000.000 VNĐ trở lên.</div>
+              </div>
+
+              <div class="field" style="margin-bottom:8px;">
+                <label>Mốc giải ngân (tối đa 3 mốc) <span style="color:var(--color-danger)">*</span></label>
+              </div>
+              <div id="milestone-list"></div>
+              <button type="button" class="btn btn-outline btn-sm" id="add-milestone">+ Thêm mốc</button>
+              <div class="error-text" id="milestone-error" style="margin-top:10px;">Cần ít nhất 1 mốc giải ngân hợp lệ
+                (tên + số tiền).</div>
+              <div class="error-text" id="milestone-sum-error" style="margin-top:10px;">Tổng số tiền các mốc giải ngân
+                đang vượt quá số tiền mục tiêu.</div>
+            </div>
+
+            <div class="sp-hr" style="margin-top:32px;"></div>
+            <div class="flex justify-between">
+              <button type="button" class="btn btn-outline" id="btn-back" disabled>Trở về</button>
+              <button type="button" class="btn btn-primary" id="btn-next">Tiếp theo</button>
+              <button type="submit" class="btn btn-primary hidden" id="btn-submit">Gửi dự án</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="success-panel" class="card card-pad text-center hidden">
+          <div style="font-size:40px;">✅</div>
+          <h2>Dự án đã được gửi và đang chờ kiểm duyệt trong 24h</h2>
+          <p class="text-muted">Đội ngũ LocalVest sẽ xem xét thông tin và hình ảnh bạn cung cấp trước khi hiển thị công
+            khai dự án.</p>
+          <a class="btn btn-primary mt-16" href="home.html">Về trang khám phá</a>
+        </div>
       </div>
+    </main>
+  </div>
 
-      <form id="submit-form">
-        <!-- STEP 1 -->
-        <div class="form-step active card card-pad" data-step="1">
-          <div class="field">
-            <label>Tên dự án</label>
-            <input type="text" class="input" id="f-name" placeholder="VD: Phòng học miễn phí cho trẻ em xóm trọ" required>
-            <div class="error-text">Vui lòng nhập tên dự án.</div>
-          </div>
-          <div class="field">
-            <label>Mô tả dự án (tối đa 500 từ)</label>
-            <textarea class="input" id="f-desc" rows="6" placeholder="Mô tả vấn đề, giải pháp và tác động cộng đồng..."></textarea>
-            <div class="hint"><span id="word-count">0</span>/500 từ</div>
-            <div class="error-text">Mô tả không được vượt quá 500 từ và không được để trống.</div>
-          </div>
-          <div class="row-3">
-            <div class="field">
-              <label>Tỉnh/Thành phố</label>
-              <select class="input" id="f-province">
-                <option>TP. Hồ Chí Minh</option>
-                <option>Hà Nội</option>
-                <option>Đà Nẵng</option>
-                <option>Cần Thơ</option>
-                <option>Hải Phòng</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>Quận/Huyện</label>
-              <input type="text" class="input" id="f-district" placeholder="VD: Bình Tân">
-              <div class="error-text">Vui lòng nhập Quận/Huyện.</div>
-            </div>
-            <div class="field">
-              <label>Phường/Xã</label>
-              <input type="text" class="input" id="f-ward" placeholder="VD: Bình Hưng Hoà">
-              <div class="error-text">Vui lòng nhập Phường/Xã.</div>
-            </div>
-          </div>
-        </div>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="js/app.js"></script>
+  <script>
+    LV.requireLogin();
+    LV.renderNavbar('submit');
+    const u = LV.getUser();
+    if (u) {
+      document.getElementById('f-full-name').value = u.full_name || '';
+      document.getElementById('f-email').value = u.email || '';
+      document.getElementById('f-phone').value = u.phone || '';
+      document.getElementById('f-username').value = u.full_name || '';
+      
+      // Fetch latest profile to check KYC
+      fetch('/api/auth/me', {
+        headers: { 'Authorization': `Bearer ${u.token}` }
+      }).then(res => res.json()).then(data => {
+        if (data && data.user) {
+          const freshUser = data.user;
+          freshUser.token = u.token; // preserve token
+          localStorage.setItem('lv_user', JSON.stringify(freshUser));
+          
+          if (freshUser.kyc_status === 'approved') {
+            isUserVerified = true;
+            document.getElementById('kyc-verified-msg').style.display = 'block';
+            document.getElementById('kyc-form-fields').style.display = 'none';
+            
+            // Hide CCCD upload
+            document.getElementById('id-front-box').closest('.kyc-grid').style.display = 'none';
+            document.getElementById('id-front-box').closest('.field').querySelector('label').innerHTML = 'Xác thực danh tính (KYC) <span class="badge badge-success" style="font-size:12px; margin-left:8px; background:#D1FAE5; color:#065F46; padding:2px 8px; border-radius:12px;">✅ Đã xác minh</span>';
+            
+            // Jump to Step 2
+            setTimeout(() => goToStep(2), 100);
+          }
+        }
+      });
+    }
 
-        <!-- STEP 2 -->
-        <div class="form-step card card-pad" data-step="2">
-          <div class="field">
-            <label>Hình ảnh dự án (tối đa 3 ảnh, mỗi ảnh ≤5MB, định dạng JPG/PNG)</label>
-            <div class="upload-box" id="photo-box">📷 Nhấn để chọn ảnh dự án</div>
-            <input type="file" id="f-photos" accept="image/jpeg,image/png" multiple class="hidden">
-            <div class="thumb-row" id="photo-preview"></div>
-            <div class="error-text" id="photo-error">Chỉ chấp nhận tối đa 3 ảnh JPG/PNG, mỗi ảnh dưới 5MB.</div>
-          </div>
-          <div class="field">
-            <label>Ảnh CCCD/CMND mặt trước của người đại diện</label>
-            <div class="upload-box" id="id-box">🪪 Nhấn để chọn ảnh CCCD (mặt trước)</div>
-            <input type="file" id="f-id" accept="image/jpeg,image/png" class="hidden">
-            <div class="thumb-row" id="id-preview"></div>
-            <div class="error-text" id="id-error">Vui lòng tải lên ảnh CCCD mặt trước, định dạng JPG/PNG, dưới 5MB.</div>
-          </div>
-        </div>
-
-        <!-- STEP 3 -->
-        <div class="form-step card card-pad" data-step="3">
-          <div class="field">
-            <label>Số tiền mục tiêu (VNĐ, tối thiểu 1.000.000đ)</label>
-            <input type="number" class="input" id="f-target" min="1000000" step="100000" placeholder="VD: 30000000">
-            <div class="error-text">Số tiền mục tiêu phải từ 1.000.000 VNĐ trở lên.</div>
-          </div>
-
-          <div class="field" style="margin-bottom:8px;">
-            <label>Mốc giải ngân (tối đa 3 mốc)</label>
-          </div>
-          <div id="milestone-list"></div>
-          <button type="button" class="btn btn-outline btn-sm" id="add-milestone">+ Thêm mốc giải ngân</button>
-          <div class="error-text" id="milestone-error" style="margin-top:10px;">Cần ít nhất 1 mốc giải ngân hợp lệ (tên + số tiền).</div>
-        </div>
-
-        <div class="flex justify-between mt-24">
-          <button type="button" class="btn btn-outline" id="btn-back" disabled>Quay lại</button>
-          <button type="button" class="btn btn-primary" id="btn-next">Tiếp tục</button>
-          <button type="submit" class="btn btn-primary hidden" id="btn-submit">Gửi dự án</button>
-        </div>
-      </form>
-
-      <div id="success-panel" class="card card-pad text-center hidden">
-        <div style="font-size:40px;">✅</div>
-        <h2>Dự án đã được gửi và đang chờ kiểm duyệt trong 24h</h2>
-        <p class="text-muted">Đội ngũ LocalVest sẽ xem xét thông tin và hình ảnh bạn cung cấp trước khi hiển thị công khai dự án.</p>
-        <a class="btn btn-primary mt-16" href="home.html">Về trang khám phá</a>
-      </div>
-    </div>
-  </main>
-</div>
-
-<script src="js/app.js"></script>
-<script>
-  LV.requireLogin();
-  LV.renderNavbar('submit');
-
-  let step = 1;
-  const totalSteps = 3;
-  let photos = [];
-  let idPhoto = null;
-  let milestoneCount = 0;
-  const MAX_MILESTONES = 3;
-
-  function goToStep(n) {
-    step = n;
-    document.querySelectorAll('.form-step').forEach((el) => el.classList.toggle('active', Number(el.dataset.step) === n));
-    document.querySelectorAll('.step').forEach((el) => {
-      const s = Number(el.dataset.step);
-      el.classList.toggle('active', s === n);
-      el.classList.toggle('done', s < n);
+        // Init Flatpickr for Date of Birth
+    flatpickr("#f-dob", {
+      dateFormat: "d/m/Y",
+      allowInput: true
     });
-    document.getElementById('btn-back').disabled = n === 1;
-    document.getElementById('btn-next').classList.toggle('hidden', n === totalSteps);
-    document.getElementById('btn-submit').classList.toggle('hidden', n !== totalSteps);
-  }
 
-  function validateStep1() {
-    let ok = true;
-    const name = document.getElementById('f-name');
-    const desc = document.getElementById('f-desc');
-    const district = document.getElementById('f-district');
-    const ward = document.getElementById('f-ward');
-    const wordCount = desc.value.trim().split(/\s+/).filter(Boolean).length;
+    let step = 1;
+    const totalSteps = 4;
+    let isUserVerified = false;
+    let idFront = null;
+    let idBack = null;
+    let milestoneCount = 0;
+    let submitted = false;
+    const MAX_MILESTONES = 3;
+    const MAX_PHOTOS = 3;
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    const photoSlots = [null, null, null]; // File | null cho mỗi ô ảnh dự án
 
-    setError(name, name.value.trim().length < 3);
-    setError(desc, desc.value.trim().length === 0 || wordCount > 500);
-    setError(district, district.value.trim().length === 0);
-    setError(ward, ward.value.trim().length === 0);
-
-    [name, desc, district, ward].forEach((el) => { if (el.closest('.field').classList.contains('has-error')) ok = false; });
-    return ok;
-  }
-
-  function setError(el, isError) {
-    el.closest('.field').classList.toggle('has-error', isError);
-  }
-
-  document.getElementById('f-desc').addEventListener('input', (e) => {
-    const wc = e.target.value.trim().split(/\s+/).filter(Boolean).length;
-    document.getElementById('word-count').textContent = wc;
-  });
-
-  function validateStep2() {
-    const photoErrOn = photos.length === 0;
-    document.getElementById('photo-error').style.display = photoErrOn ? 'block' : 'none';
-    const idErrOn = !idPhoto;
-    document.getElementById('id-error').style.display = idErrOn ? 'block' : 'none';
-    return !photoErrOn && !idErrOn;
-  }
-
-  function readMilestones() {
-    return Array.from(document.querySelectorAll('.milestone-row')).map((row) => ({
-      name: row.querySelector('.m-name').value.trim(),
-      amount: Number(row.querySelector('.m-amount').value || 0),
-      desc: row.querySelector('.m-desc').value.trim(),
-    })).filter((m) => m.name && m.amount > 0);
-  }
-
-  function validateStep3() {
-    const target = document.getElementById('f-target');
-    const targetOk = Number(target.value) >= 1000000;
-    setError(target, !targetOk);
-    const milestones = readMilestones();
-    const msError = document.getElementById('milestone-error');
-    const msOk = milestones.length > 0;
-    msError.style.display = msOk ? 'none' : 'block';
-    return targetOk && msOk;
-  }
-
-  document.getElementById('btn-next').addEventListener('click', () => {
-    let valid = true;
-    if (step === 1) valid = validateStep1();
-    if (step === 2) valid = validateStep2();
-    if (valid) goToStep(step + 1);
-  });
-  document.getElementById('btn-back').addEventListener('click', () => goToStep(step - 1));
-
-  // Photo upload (project images)
-  document.getElementById('photo-box').addEventListener('click', () => document.getElementById('f-photos').click());
-  document.getElementById('f-photos').addEventListener('change', (e) => {
-    const files = Array.from(e.target.files).slice(0, 3);
-    const valid = files.every((f) => ['image/jpeg', 'image/png'].includes(f.type) && f.size <= 5 * 1024 * 1024);
-    document.getElementById('photo-error').style.display = valid && files.length ? 'none' : (files.length ? 'block' : 'none');
-    if (!valid) { photos = []; document.getElementById('photo-preview').innerHTML = ''; return; }
-    photos = files;
-    const preview = document.getElementById('photo-preview');
-    preview.innerHTML = '';
-    files.forEach((f) => {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const img = document.createElement('img');
-        img.src = ev.target.result;
-        img.className = 'thumb';
-        preview.appendChild(img);
-      };
-      reader.readAsDataURL(f);
-    });
-  });
-
-  // ID photo upload
-  document.getElementById('id-box').addEventListener('click', () => document.getElementById('f-id').click());
-  document.getElementById('f-id').addEventListener('change', (e) => {
-    const f = e.target.files[0];
-    if (!f) return;
-    const valid = ['image/jpeg', 'image/png'].includes(f.type) && f.size <= 5 * 1024 * 1024;
-    document.getElementById('id-error').style.display = valid ? 'none' : 'block';
-    if (!valid) { idPhoto = null; return; }
-    idPhoto = f;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      document.getElementById('id-preview').innerHTML = `<img src="${ev.target.result}" class="thumb">`;
+    // ---------- Khu vực: Tỉnh > Quận/Huyện > Phường/Xã ----------
+    const LOCATION_MAP = {
+      'TP. Hồ Chí Minh': {
+        'Quận 1': ['Phường Tân Định', 'Phường Đa Kao', 'Phường Bến Nghé', 'Phường Bến Thành', 'Phường Nguyễn Thái Bình', 'Phường Phạm Ngũ Lão', 'Phường Cầu Ông Lãnh', 'Phường Cô Giang', 'Phường Cầu Kho', 'Phường Nguyễn Cư Trinh'],
+        'Quận 3': ['Phường 1', 'Phường 2', 'Phường 3', 'Phường 4', 'Phường 5', 'Phường Võ Thị Sáu', 'Phường 9', 'Phường 10', 'Phường 11', 'Phường 12', 'Phường 13', 'Phường 14'],
+        'Quận 5': ['Phường 1', 'Phường 2', 'Phường 3', 'Phường 4', 'Phường 5', 'Phường 6', 'Phường 7', 'Phường 8', 'Phường 9', 'Phường 10', 'Phường 11', 'Phường 12', 'Phường 13', 'Phường 14'],
+        'Quận 10': ['Phường 1', 'Phường 2', 'Phường 4', 'Phường 5', 'Phường 6', 'Phường 7', 'Phường 8', 'Phường 9', 'Phường 10', 'Phường 11', 'Phường 12', 'Phường 13', 'Phường 14', 'Phường 15'],
+        'Bình Thạnh': ['Phường 1', 'Phường 2', 'Phường 3', 'Phường 5', 'Phường 6', 'Phường 7', 'Phường 11', 'Phường 12', 'Phường 13', 'Phường 14', 'Phường 15', 'Phường 17', 'Phường 19', 'Phường 21', 'Phường 22', 'Phường 24', 'Phường 25', 'Phường 26', 'Phường 27', 'Phường 28'],
+        'TP. Thủ Đức': ['Phường An Khánh', 'Phường An Lợi Đông', 'Phường An Phú', 'Phường Bình Chiểu', 'Phường Bình Thọ', 'Phường Bình Trưng Đông', 'Phường Bình Trưng Tây', 'Phường Cát Lái', 'Phường Hiệp Bình Chánh', 'Phường Hiệp Bình Phước', 'Phường Hiệp Phú', 'Phường Linh Chiểu', 'Phường Linh Đông', 'Phường Linh Tây', 'Phường Linh Trung', 'Phường Linh Xuân', 'Phường Long Bình', 'Phường Long Phước', 'Phường Long Thạnh Mỹ', 'Phường Long Trường', 'Phường Phú Hữu', 'Phường Phước Bình', 'Phường Phước Long A', 'Phường Phước Long B', 'Phường Tam Bình', 'Phường Tam Phú', 'Phường Tăng Nhơn Phú A', 'Phường Tăng Nhơn Phú B', 'Phường Tân Phú', 'Phường Thảo Điền', 'Phường Thạnh Mỹ Lợi', 'Phường Thủ Thiêm', 'Phường Trường Thạnh']
+      },
+      'Hà Nội': {
+        'Ba Đình': ['Phường Cống Vị', 'Phường Điện Biên', 'Phường Đội Cấn', 'Phường Giảng Võ', 'Phường Kim Mã', 'Phường Liễu Giai', 'Phường Ngọc Hà', 'Phường Ngọc Khánh', 'Phường Nguyễn Trung Trực', 'Phường Phúc Xá', 'Phường Quán Thánh', 'Phường Thành Công', 'Phường Trúc Bạch', 'Phường Vĩnh Phúc'],
+        'Hoàn Kiếm': ['Phường Chương Dương', 'Phường Cửa Đông', 'Phường Cửa Nam', 'Phường Đồng Xuân', 'Phường Hàng Bạc', 'Phường Hàng Bài', 'Phường Hàng Bồ', 'Phường Hàng Bông', 'Phường Hàng Buồm', 'Phường Hàng Đào', 'Phường Hàng Gai', 'Phường Hàng Mã', 'Phường Hàng Trống', 'Phường Lý Thái Tổ', 'Phường Phan Chu Trinh', 'Phường Phúc Tân', 'Phường Trần Hưng Đạo', 'Phường Tràng Tiền'],
+        'Cầu Giấy': ['Phường Dịch Vọng', 'Phường Dịch Vọng Hậu', 'Phường Mai Dịch', 'Phường Nghĩa Đô', 'Phường Nghĩa Tân', 'Phường Quan Hoa', 'Phường Trung Hòa', 'Phường Yên Hòa'],
+        'Đống Đa': ['Phường Cát Linh', 'Phường Hàng Bột', 'Phường Khâm Thiên', 'Phường Khương Thượng', 'Phường Kim Liên', 'Phường Láng Hạ', 'Phường Láng Thượng', 'Phường Nam Đồng', 'Phường Ngã Tư Sở', 'Phường Ô Chợ Dừa', 'Phường Phương Liên', 'Phường Phương Mai', 'Phường Quang Trung', 'Phường Quốc Tử Giám', 'Phường Thịnh Quang', 'Phường Thổ Quan', 'Phường Trung Liệt', 'Phường Trung Phụng', 'Phường Trung Tự', 'Phường Văn Chương', 'Phường Văn Miếu']
+      },
+      'Đà Nẵng': {
+        'Hải Châu': ['Phường Bình Hiên', 'Phường Bình Thuận', 'Phường Hải Châu I', 'Phường Hải Châu II', 'Phường Hòa Cường Bắc', 'Phường Hòa Cường Nam', 'Phường Hòa Thuận Bắc', 'Phường Hòa Thuận Nam', 'Phường Nam Dương', 'Phường Phước Ninh', 'Phường Thạch Thang', 'Phường Thanh Bình', 'Phường Thuận Phước'],
+        'Thanh Khê': ['Phường An Khê', 'Phường Chính Gián', 'Phường Hòa Khê', 'Phường Tam Thuận', 'Phường Tân Chính', 'Phường Thạc Gián', 'Phường Thanh Khê Đông', 'Phường Thanh Khê Tây', 'Phường Vĩnh Trung', 'Phường Xuân Hà'],
+        'Sơn Trà': ['Phường An Hải Bắc', 'Phường An Hải Đông', 'Phường An Hải Tây', 'Phường Mân Thái', 'Phường Nại Hiên Đông', 'Phường Phước Mỹ', 'Phường Thọ Quang']
+      },
+      'Cần Thơ': {
+        'Ninh Kiều': ['Phường An Bình', 'Phường An Cư', 'Phường An Hòa', 'Phường An Khánh', 'Phường An Nghiệp', 'Phường An Phú', 'Phường Cái Khế', 'Phường Hưng Lợi', 'Phường Tân An', 'Phường Thới Bình', 'Phường Xuân Khánh'],
+        'Bình Thủy': ['Phường An Thới', 'Phường Bình Thủy', 'Phường Bùi Hữu Nghĩa', 'Phường Long Hòa', 'Phường Long Tuyền', 'Phường Thới An Đông', 'Phường Trà An', 'Phường Trà Nóc']
+      },
+      'Hải Phòng': {
+        'Hồng Bàng': ['Phường Hạ Lý', 'Phường Hoàng Văn Thụ', 'Phường Hùng Vương', 'Phường Minh Khai', 'Phường Phan Bội Châu', 'Phường Quán Toan', 'Phường Quang Trung', 'Phường Sở Dầu', 'Phường Thượng Lý', 'Phường Trại Chuối'],
+        'Ngô Quyền': ['Phường Cầu Đất', 'Phường Cầu Tre', 'Phường Đằng Giang', 'Phường Đông Khê', 'Phường Đồng Quốc Bình', 'Phường Gia Viên', 'Phường Lạc Viên', 'Phường Lạch Tray', 'Phường Lê Lợi', 'Phường Máy Chai', 'Phường Máy Tơ', 'Phường Vạn Mỹ'],
+        'Lê Chân': ['Phường An Biên', 'Phường An Dương', 'Phường Cát Dài', 'Phường Đông Hải', 'Phường Dư Hàng', 'Phường Dư Hàng Kênh', 'Phường Hàng Kênh', 'Phường Hồ Nam', 'Phường Kênh Dương', 'Phường Lam Sơn', 'Phường Nghĩa Xá', 'Phường Niệm Nghĩa', 'Phường Trại Cau', 'Phường Trần Nguyên Hãn', 'Phường Vĩnh Niệm']
+      }
     };
-    reader.readAsDataURL(f);
-  });
 
-  // Milestones
-  function addMilestoneRow() {
-    if (milestoneCount >= MAX_MILESTONES) return;
-    milestoneCount++;
-    const idx = milestoneCount;
-    const div = document.createElement('div');
-    div.className = 'milestone-row';
-    div.innerHTML = `
-      <button type="button" class="milestone-remove">✕ Xoá</button>
-      <div class="field" style="margin-bottom:10px;">
-        <label>Mốc ${idx} — Tên mốc</label>
-        <input type="text" class="input m-name" placeholder="VD: Sửa chữa phòng học">
+    function fillSelect(el, options, placeholder) {
+      el.innerHTML = `<option value="" disabled selected>${placeholder}</option>` +
+        options.map((o) => `<option value="${o}">${o}</option>`).join('');
+    }
+
+    function onProvinceChange() {
+      const province = document.getElementById('f-province').value;
+      const districts = Object.keys(LOCATION_MAP[province] || {});
+      fillSelect(document.getElementById('f-district'), districts, 'Quận/Huyện');
+      fillSelect(document.getElementById('f-ward'), [], 'Phường/Xã');
+    }
+    function onDistrictChange() {
+      const province = document.getElementById('f-province').value;
+      const district = document.getElementById('f-district').value;
+      const wards = (LOCATION_MAP[province] || {})[district] || [];
+      fillSelect(document.getElementById('f-ward'), wards, 'Phường/Xã');
+    }
+    document.getElementById('f-province').addEventListener('change', onProvinceChange);
+    document.getElementById('f-district').addEventListener('change', onDistrictChange);
+    onProvinceChange();
+
+    // ---------- Stepper ---------- 
+    function goToStep(n) { // Function này giúp điểu khiển luồn giao diện của một form nhiều bước 
+      step = n;
+
+      document.querySelectorAll('.form-step').forEach((el) => el.classList.toggle('active', Number(el.dataset.step) === n));
+
+      document.querySelectorAll('.sp-step').forEach((el) => {
+        const s = Number(el.dataset.step);
+        el.classList.toggle('active', s === n);
+        el.classList.toggle('done', s < n);
+      });
+
+      document.querySelectorAll('.sp-step-line').forEach((el) => {
+        const s = Number(el.dataset.line);
+        el.classList.toggle('done', s < n);
+      });
+
+      document.getElementById('btn-back').disabled = n === 1;
+      document.getElementById('btn-next').classList.toggle('hidden', n === totalSteps);
+      document.getElementById('btn-submit').classList.toggle('hidden', n !== totalSteps);
+    }
+
+    function setError(el, isError) {
+      el.closest('.field').classList.toggle('has-error', isError);
+    }
+
+    function validateStep1() {
+      if (isUserVerified) return true;
+      const fullName = document.getElementById('f-full-name');
+      const email = document.getElementById('f-email');
+      const phone = document.getElementById('f-phone');
+      const username = document.getElementById('f-username');
+      const dob = document.getElementById('f-dob');
+      const address = document.getElementById('f-address');
+      const social = document.getElementById('f-social');
+      const bname = document.getElementById('f-bank-name');
+      const bnum = document.getElementById('f-bank-acc-num');
+      const bacc = document.getElementById('f-bank-acc-name');
+      
+      setError(fullName, fullName.value.trim().length === 0);
+      setError(email, email.value.trim().length === 0);
+      setError(phone, phone.value.trim().length === 0);
+      setError(username, username.value.trim().length === 0);
+      setError(dob, !dob.value);
+      setError(address, address.value.trim().length === 0);
+      setError(social, social.value.trim().length === 0);
+      setError(bname, bname.value.trim().length === 0);
+      setError(bnum, bnum.value.trim().length === 0);
+      setError(bacc, bacc.value.trim().length === 0);
+      
+      return [fullName, email, phone, username, dob, address, social, bname, bnum, bacc].every((el) => !el.closest('.field').classList.contains('has-error'));
+    }
+    function validateStep2() {
+      if(arguments.length > 0 && arguments[0].type === "input") { /* Called by event listener */ }
+      const name = document.getElementById('f-name');
+      const desc = document.getElementById('f-desc');
+      const district = document.getElementById('f-district');
+      const ward = document.getElementById('f-ward');
+      const wordCount = desc.value.trim().split(/\s+/).filter(Boolean).length;
+
+      setError(name, name.value.trim().length < 3);
+      setError(desc, desc.value.trim().length === 0 || wordCount > 500);
+      setError(district, district.value.trim().length === 0);
+      setError(ward, ward.value.trim().length === 0);
+
+      return [name, desc, district, ward].every((el) => !el.closest('.field').classList.contains('has-error'));
+    }
+
+    document.getElementById('f-desc').addEventListener('input', (e) => {
+      const wc = e.target.value.trim().split(/\s+/).filter(Boolean).length;
+      document.getElementById('word-count').textContent = wc;
+    });
+
+    // ---------- Step 2: ảnh dự án (3 ô) ----------
+    const DOC_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M4 16.5l5-5 3.5 3.5 2-2 5.5 5.5"/></svg>';
+    const photoGrid = document.getElementById('photo-grid');
+    for (let i = 0; i < MAX_PHOTOS; i++) {
+      const item = document.createElement('div');
+      item.className = 'doc-item';
+      item.innerHTML = `
+      <label class="doc-box" id="photo-box-${i}">
+        <input type="file" id="f-photo-${i}" accept="image/jpeg,image/png" class="hidden">
+        <div class="doc-icon" id="photo-icon-${i}">${DOC_ICON_SVG}</div>
+        <span class="doc-text" id="photo-text-${i}">Vui lòng cung cấp hình ảnh minh chứng dự án</span>
+      </label>
+      <div class="doc-error-text" id="photo-error-${i}">File không hợp lệ hoặc quá lớn (Tối đa 10MB)</div>
+    `;
+      photoGrid.appendChild(item);
+      item.querySelector('input').addEventListener('change', (e) => handlePhotoFile(i, e.target.files[0]));
+    }
+
+    // Chỉ hiện thông báo lỗi khi dung lượng tệp vượt quá 10MB; nếu không hợp lệ thì không cho qua bước tiếp theo.
+    function isFileTooLarge(file) { return file.size > MAX_FILE_SIZE; }
+
+    // Hiển thị ảnh xem trước + tên tệp trong khung, để người dùng xác nhận đúng tệp đã chọn.
+    function renderThumb(box, file, dataUrl) {
+      const oldImg = box.querySelector('img');
+      if (oldImg) oldImg.remove();
+      const oldName = box.querySelector('.doc-filename');
+      if (oldName) oldName.remove();
+      const img = document.createElement('img');
+      img.className = 'doc-thumb';
+      img.src = dataUrl;
+      box.insertBefore(img, box.querySelector('.doc-icon'));
+      const nameEl = document.createElement('div');
+      nameEl.className = 'doc-filename';
+      nameEl.textContent = file.name;
+      box.appendChild(nameEl);
+    }
+
+    // Xoá ảnh xem trước + tên tệp cũ khi tệp mới chọn không hợp lệ, để khung quay lại trạng thái rỗng + viền đỏ.
+    function clearThumb(box) {
+      const oldImg = box.querySelector('img');
+      if (oldImg) oldImg.remove();
+      const oldName = box.querySelector('.doc-filename');
+      if (oldName) oldName.remove();
+    }
+
+    function handlePhotoFile(i, file) {
+      const box = document.getElementById(`photo-box-${i}`);
+      const errEl = document.getElementById(`photo-error-${i}`);
+      if (!file) return;
+      if (isFileTooLarge(file)) {
+        photoSlots[i] = null;
+        box.classList.add('has-error');
+        box.classList.remove('has-file');
+        clearThumb(box);
+        errEl.classList.add('show');
+        validateStep3();
+        return;
+      }
+      photoSlots[i] = file;
+      box.classList.remove('has-error');
+      box.classList.add('has-file');
+      errEl.classList.remove('show');
+      const reader = new FileReader();
+      reader.onload = (ev) => renderThumb(box, file, ev.target.result);
+      reader.readAsDataURL(file);
+      validateStep3();
+    }
+
+    // ---------- Step 2: KYC CCCD (mặt trước + mặt sau) ----------
+    function handleIdSideFile(side, file) {
+      const box = document.getElementById(`id-${side}-box`);
+      const errEl = document.getElementById(`id-${side}-error`);
+      if (!file) return;
+      if (isFileTooLarge(file)) {
+        if (side === 'front') idFront = null; else idBack = null;
+        box.classList.add('has-error');
+        box.classList.remove('has-file');
+        clearThumb(box);
+        errEl.classList.add('show');
+        validateStep3();
+        return;
+      }
+      if (side === 'front') idFront = file; else idBack = file;
+      box.classList.remove('has-error');
+      box.classList.add('has-file');
+      errEl.classList.remove('show');
+      const reader = new FileReader();
+      reader.onload = (ev) => renderThumb(box, file, ev.target.result);
+      reader.readAsDataURL(file);
+      validateStep3();
+    }
+    document.getElementById('f-id-front').addEventListener('change', (e) => handleIdSideFile('front', e.target.files[0]));
+    document.getElementById('f-id-back').addEventListener('change', (e) => handleIdSideFile('back', e.target.files[0]));
+
+    // Tô viền đỏ cho khung còn thiếu khi validate thất bại (không chỉ khi lỗi dung lượng)
+    function markStep2RequiredErrors() {
+      const hasPhoto = photoSlots.some((f) => f);
+      for (let i = 0; i < MAX_PHOTOS; i++) {
+        const box = document.getElementById(`photo-box-${i}`);
+        // Chỉ cần tối thiểu 1 ảnh minh chứng: nếu chưa có ảnh nào, tô đỏ toàn bộ 3 khung còn trống.
+        if (!hasPhoto && !photoSlots[i]) box.classList.add('has-error');
+      }
+      if (!isUserVerified && !idFront) document.getElementById('id-front-box').classList.add('has-error');
+      if (!isUserVerified && !idBack) document.getElementById('id-back-box').classList.add('has-error');
+      document.getElementById('step2-required-error').classList.add('show');
+    }
+
+    function validateStep3() {
+      const hasPhoto = photoSlots.some((f) => f);
+      const ok = hasPhoto && (isUserVerified || (!!idFront && !!idBack));
+      if (ok) {
+        document.getElementById('step2-required-error').classList.remove('show');
+      }
+      if (hasPhoto) {
+        // Đã đủ tối thiểu 1 ảnh minh chứng: bỏ viền đỏ "thiếu" ở các khung ảnh còn trống (không còn bắt buộc).
+        for (let i = 0; i < MAX_PHOTOS; i++) {
+          if (!photoSlots[i]) document.getElementById(`photo-box-${i}`).classList.remove('has-error');
+        }
+      }
+      return ok;
+    }
+
+    // ---------- Step 3: Mốc giải ngân ----------
+    function readMilestones() {
+      return Array.from(document.querySelectorAll('.milestone-row')).map((row) => ({
+        name: row.querySelector('.m-name').value.trim(),
+        amount: Number(row.querySelector('.m-amount').value || 0),
+        desc: row.querySelector('.m-desc').value.trim(),
+      })).filter((m) => m.name && m.amount > 0);
+    }
+
+    function validateStep4() {
+      const target = document.getElementById('f-target');
+      const targetOk = Number(target.value) >= 1000000;
+      setError(target, !targetOk);
+      const milestones = readMilestones();
+      const msOk = milestones.length > 0;
+      document.getElementById('milestone-error').style.display = msOk ? 'none' : 'block';
+
+      const sum = milestones.reduce((s, m) => s + m.amount, 0);
+      const sumOk = !targetOk || sum <= Number(target.value);
+      document.getElementById('milestone-sum-error').style.display = sumOk ? 'none' : 'block';
+
+      return targetOk && msOk && sumOk;
+    }
+    document.getElementById('f-target').addEventListener('input', validateStep4);
+
+    function addMilestoneRow() {
+      if (milestoneCount >= MAX_MILESTONES) return;
+      milestoneCount++;
+      const idx = milestoneCount;
+      const div = document.createElement('div');
+      div.className = 'milestone-row';
+      // Mốc đầu tiên hiển thị gọn (không tiêu đề/nút xoá), giống bản thiết kế; các mốc thêm sau mới có tiêu đề + nút xoá.
+      const headHtml = idx === 1 ? '' : `
+      <div class="milestone-head">
+        <span>Mốc giải ngân ${idx}</span>
+        <button type="button" class="milestone-remove">✕ Xoá</button>
+      </div>`;
+      div.innerHTML = `
+      ${headHtml}
+      <div class="field" style="margin-bottom:0;">
+        <label>Tên mốc <span style="color:var(--color-danger)">*</span></label>
+        <input type="text" class="input m-name" placeholder="Nhập tên mốc">
       </div>
-      <div class="row-2">
-        <div class="field" style="margin-bottom:10px;">
-          <label>Số tiền (VNĐ)</label>
-          <input type="number" class="input m-amount" min="0" step="100000">
-        </div>
-        <div class="field" style="margin-bottom:0;">
-          <label>Mô tả điều kiện giải ngân</label>
-          <input type="text" class="input m-desc" placeholder="VD: Có biên lai chi phí">
-        </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Số tiền <span style="color:var(--color-danger)">*</span></label>
+        <input type="number" class="input m-amount" min="0" step="100000" placeholder="Nhập số tiền">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Mô tả ngắn <span style="color:var(--color-danger)">*</span></label>
+        <textarea class="input m-desc" rows="2" placeholder="Mô tả chi tiết công việc trong mốc này"></textarea>
       </div>
     `;
-    div.querySelector('.milestone-remove').addEventListener('click', () => { div.remove(); milestoneCount--; updateAddBtn(); });
-    document.getElementById('milestone-list').appendChild(div);
-    updateAddBtn();
-  }
-  function updateAddBtn() {
-    document.getElementById('add-milestone').disabled = milestoneCount >= MAX_MILESTONES;
-  }
-  document.getElementById('add-milestone').addEventListener('click', addMilestoneRow);
-  addMilestoneRow();
+      const removeBtn = div.querySelector('.milestone-remove');
+      if (removeBtn) removeBtn.addEventListener('click', () => { div.remove(); milestoneCount--; updateAddBtn(); validateStep4(); });
+      div.querySelectorAll('.m-amount').forEach((el) => el.addEventListener('input', validateStep4));
+      document.getElementById('milestone-list').appendChild(div);
+      updateAddBtn();
+    }
+    function updateAddBtn() {
+      document.getElementById('add-milestone').classList.toggle('hidden', milestoneCount >= MAX_MILESTONES);
+    }
+    document.getElementById('add-milestone').addEventListener('click', addMilestoneRow);
+    addMilestoneRow();
 
-  document.getElementById('submit-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    if (!validateStep3()) return;
-
-    const queue = LV.getQueue();
-    const user = LV.getUser();
-    queue.push({
-      id: LV.uid('sub'),
-      projectName: document.getElementById('f-name').value.trim(),
-      creatorName: user ? user.name : 'Không rõ',
-      submittedAt: new Date().toISOString(),
-      status: 'pending',
-      fraudScore: Math.floor(Math.random() * 30), // dự án tự đăng ký demo: nguy cơ thấp mặc định
-      fraudReason: 'Không phát hiện dấu hiệu bất thường',
-      target: Number(document.getElementById('f-target').value),
-      description: document.getElementById('f-desc').value.trim(),
-      location: `${document.getElementById('f-ward').value.trim()}, ${document.getElementById('f-district').value.trim()}, ${document.getElementById('f-province').value}`,
-      milestones: readMilestones(),
+    document.getElementById('btn-next').addEventListener('click', () => {
+      if (step === 1 && !validateStep1()) return;
+      if (step === 2 && !validateStep2()) return;
+      if (step === 3 && !validateStep3()) {
+        markStep2RequiredErrors();
+        return;
+      }
+      if (step < totalSteps) goToStep(step + 1);
     });
-    LV.saveQueue(queue);
 
-    document.getElementById('submit-form').classList.add('hidden');
-    document.querySelector('.stepper').classList.add('hidden');
-    document.getElementById('success-panel').classList.remove('hidden');
-  });
+    document.getElementById('btn-back').addEventListener('click', () => {
+      if (step > 1) goToStep(step - 1);
+    });
+    document.getElementById('submit-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!validateStep4()) return;
 
-  goToStep(1);
-</script>
+      const submitBtn = document.getElementById('btn-submit');
+      const ogText = submitBtn.innerText;
+      submitBtn.innerText = 'Đang gửi...';
+      submitBtn.disabled = true;
+
+      try {
+        const milestones = readMilestones().map(m => ({
+          name: m.name,
+          target_amount: m.amount,
+          description: m.desc
+        }));
+
+        const payload = {
+          name: document.getElementById('f-name').value.trim(),
+          category: 'Cộng đồng',
+          dob: document.getElementById('f-dob').value,
+          current_address: document.getElementById('f-address').value.trim(),
+          social_link: document.getElementById('f-social').value.trim(),
+          bank_name: document.getElementById('f-bank-name').value.trim(),
+          bank_account_number: document.getElementById('f-bank-acc-num').value.trim(),
+          bank_account_name: document.getElementById('f-bank-acc-name').value.trim(),
+          description: document.getElementById('f-desc').value.trim(),
+          location_name: `${document.getElementById('f-ward').value}, ${document.getElementById('f-district').value}, ${document.getElementById('f-province').value}`,
+          target_amount: Number(document.getElementById('f-target').value),
+          lat: LV.BASE_LAT + (Math.random() - 0.5) * 0.1,
+          lng: LV.BASE_LNG + (Math.random() - 0.5) * 0.1,
+          milestones: milestones
+        };
+
+        const formData = new FormData();
+        formData.append('payload', JSON.stringify(payload));
+        for (let i = 0; i < MAX_PHOTOS; i++) {
+          if (photoSlots[i]) formData.append('project_images', photoSlots[i]);
+        }
+        if (idFront) formData.append('kyc_front', idFront);
+        if (idBack) formData.append('kyc_back', idBack);
+
+        const user = LV.getUser();
+        const headers = {};
+        if (user && user.token) {
+          headers['Authorization'] = `Bearer ${user.token}`;
+        }
+
+        const res = await fetch('/api/campaigns', {
+          method: 'POST',
+          headers: headers,
+          body: formData
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          LV.toast(err.detail || 'Lỗi khi tạo dự án', 'error');
+          submitBtn.innerText = ogText;
+          submitBtn.disabled = false;
+          return;
+        }
+
+        submitted = true;
+        document.getElementById('register-card').classList.add('hidden');
+        document.getElementById('success-panel').classList.remove('hidden');
+      } catch (err) {
+        console.error(err);
+        LV.toast('Lỗi kết nối máy chủ', 'error');
+        submitBtn.innerText = ogText;
+        submitBtn.disabled = false;
+      }
+    });
+
+
+    // Cảnh báo mất dữ liệu nếu thoát giữa chừng multi-step form (đề xuất bổ sung AC)
+    function formHasInput() {
+      const anyMilestoneFilled = Array.from(document.querySelectorAll('.milestone-row')).some(
+        (row) => row.querySelector('.m-name').value.trim() !== '' || row.querySelector('.m-amount').value !== ''
+      );
+      return document.getElementById('f-name').value.trim() !== ''
+        || document.getElementById('f-desc').value.trim() !== ''
+        || photoSlots.some((f) => f) || !!idFront || !!idBack || anyMilestoneFilled
+        || document.getElementById('f-target').value !== '';
+    }
+    window.addEventListener('beforeunload', (e) => {
+      if (submitted || !formHasInput()) return;
+      e.preventDefault();
+      e.returnValue = 'Dữ liệu sẽ mất nếu thoát';
+      return 'Dữ liệu sẽ mất nếu thoát';
+    });
+
+    goToStep(1);
+  </script>
 </body>
+
 </html>

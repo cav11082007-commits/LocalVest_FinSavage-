@@ -15,7 +15,7 @@
   <main class="page-main">
     <div class="container">
       <h1 class="page-title">Khám phá dự án quanh bạn</h1>
-      <p class="page-subtitle">Các dự án cộng đồng trong bán kính 3-5km, sắp xếp theo khoảng cách gần nhất.</p>
+      <p class="page-subtitle">Các dự án cộng đồng quanh bạn, sắp xếp theo khoảng cách gần nhất.</p>
 
       <div id="gps-banner"></div>
 
@@ -43,27 +43,52 @@
   let currentFilter = 'all';
   let locationGranted = false;
 
-  function renderBanner(state) {
+  function renderBanner(state, radius = null) {
     const el = document.getElementById('gps-banner');
     if (state === 'loading') {
-      el.innerHTML = `<div class="banner banner-info">📍 Đang xác định vị trí của bạn...</div>`;
+      el.innerHTML = `<div class="banner banner-info">📍 Đang xác định vị trí và tìm dự án quanh bạn...</div>`;
     } else if (state === 'granted') {
-      el.innerHTML = `<div class="banner banner-success">📍 Đã xác định vị trí — hiển thị dự án trong bán kính 5km quanh bạn.</div>`;
+      const r = radius ? radius : 5;
+      el.innerHTML = `<div class="banner banner-success">📍 Đã xác định vị trí — hiển thị dự án trong bán kính ${r}km quanh bạn.</div>`;
+    } else if (state === 'no_projects') {
+      const r = radius ? radius : 5;
+      el.innerHTML = `<div class="banner banner-warning">📍 Đã mở rộng bán kính lên ${r}km nhưng không có dự án. Đang hiển thị tất cả dự án.</div>`;
     } else {
       el.innerHTML = `<div class="banner banner-warning">📍 Vui lòng bật định vị để xem các dự án quanh bạn. Đang hiển thị danh sách mặc định.</div>`;
     }
   }
 
+  let allProjects = [];
+
+  async function loadProjects(lat, lng) {
+    if (lat && lng) {
+      const result = await LV.getNearbyCampaigns(lat, lng, 5.0);
+      allProjects = result.projects || [];
+      const finalRadius = result.radius_km || 5.0;
+      
+      if (!allProjects || allProjects.length === 0) {
+        renderBanner('no_projects', finalRadius);
+        LV.toast(`Không tìm thấy dự án lân cận ${finalRadius}km. Đang hiển thị tất cả dự án`, 'warning');
+        allProjects = await LV.getCampaigns();
+      } else {
+        renderBanner('granted', finalRadius);
+      }
+    } else {
+      allProjects = await LV.getCampaigns();
+    }
+    renderGrid();
+  }
+
   function statusBadge(p) {
-    const pct = Math.round((p.raised / p.target) * 100);
-    if (p.fraudFlag) return `<span class="badge badge-danger">⚠ Đang xác minh</span>`;
-    if (pct >= 100) return `<span class="badge badge-success">Đã đạt mục tiêu</span>`;
-    return `<span class="badge badge-primary">${p.category}</span>`;
+    const pct = Math.round((p.raised_amount / p.target_amount) * 100);
+    if (pct >= 100 || p.status === 'funded') return `<span class="badge badge-success">Đạt được mục tiêu</span>`;
+    return `<span class="badge badge-primary">Đang trong quá trình</span>`;
   }
 
   function renderGrid() {
     const grid = document.getElementById('project-grid');
-    let projects = LV.getProjects().filter((p) => p.status === 'active');
+    // Hiển thị tất cả dự án (cả đang chờ duyệt) theo yêu cầu của user
+    let projects = allProjects.slice();
     if (currentFilter !== 'all') projects = projects.filter((p) => p.category === currentFilter);
     projects.sort((a, b) => (a.distanceKm || 99) - (b.distanceKm || 99));
 
@@ -73,8 +98,8 @@
     }
 
     grid.innerHTML = projects.map((p) => {
-      const pct = Math.min(100, Math.round((p.raised / p.target) * 100));
-      const dist = locationGranted ? `Cách bạn ${p.distanceKm.toFixed(1)}km` : '--';
+      const pct = Math.min(100, Math.round((p.raised_amount / p.target_amount) * 100));
+      const dist = p.distanceKm !== undefined ? `Cách bạn ${p.distanceKm.toFixed(1)}km` : '--';
       return `
       <a class="project-card" href="project.html?id=${p.id}">
         <div class="project-cover ${p.cover}">${p.icon}</div>
@@ -84,11 +109,11 @@
             <span class="text-sm text-muted">📍 ${dist}</span>
           </div>
           <div class="project-name">${p.name}</div>
-          <div class="text-sm text-muted">${p.location}</div>
+          <div class="text-sm text-muted">${p.location_name || p.location || 'Không rõ'}</div>
           <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
           <div class="project-progress-row">
-            <span class="project-amount">${LV.formatVND(p.raised)}</span>
-            <span>${pct}% / ${LV.formatVND(p.target)}</span>
+            <span class="project-amount">${LV.formatVND(p.raised_amount)}</span>
+            <span>${pct}% / ${LV.formatVND(p.target_amount)}</span>
           </div>
         </div>
       </a>`;
@@ -106,33 +131,44 @@
     });
   });
 
-  document.getElementById('refresh-btn').addEventListener('click', () => {
-    LV.toast('Đã làm mới danh sách dự án', 'success');
-    renderGrid();
+  document.getElementById('refresh-btn').addEventListener('click', async () => {
+    LV.toast('Đang tải dữ liệu...', 'info');
+    if (locationGranted) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => loadProjects(pos.coords.latitude, pos.coords.longitude),
+        () => loadProjects()
+      );
+    } else {
+      await loadProjects();
+    }
   });
 
   // Pull-to-refresh (chạm kéo xuống ở đầu trang trên thiết bị cảm ứng)
   let touchStartY = null;
   window.addEventListener('touchstart', (e) => { if (window.scrollY === 0) touchStartY = e.touches[0].clientY; });
-  window.addEventListener('touchend', (e) => {
+  window.addEventListener('touchend', async (e) => {
     if (touchStartY !== null && e.changedTouches[0].clientY - touchStartY > 80) {
-      LV.toast('Đã làm mới danh sách dự án', 'success');
-      renderGrid();
+      LV.toast('Đang tải dữ liệu...', 'info');
+      await loadProjects();
     }
     touchStartY = null;
   });
 
-  renderBanner('loading');
-  if ('geolocation' in navigator) {
-    navigator.geolocation.getCurrentPosition(
-      () => { locationGranted = true; renderBanner('granted'); renderGrid(); },
-      () => { locationGranted = false; renderBanner('denied'); renderGrid(); },
-      { timeout: 5000 }
-    );
-  } else {
-    renderBanner('denied');
+  async function init() {
+    renderBanner('loading');
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => { locationGranted = true; loadProjects(pos.coords.latitude, pos.coords.longitude); },
+        () => { locationGranted = false; renderBanner('denied'); loadProjects(); },
+        { timeout: 5000 }
+      );
+    } else {
+      renderBanner('denied');
+      loadProjects();
+    }
   }
-  renderGrid();
+
+  init();
 </script>
 </body>
 </html>

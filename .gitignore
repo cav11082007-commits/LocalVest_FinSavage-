@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+
+backend/app/scratch/*.txt
+backend/app/kyc/*.jpg
+backend/app/
