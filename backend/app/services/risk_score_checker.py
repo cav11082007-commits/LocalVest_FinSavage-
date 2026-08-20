@@ -44,18 +44,15 @@ def evaluate_disbursement(project_id, project_features):
     Trả về chuỗi JSON chuẩn.
     """
     import os
-    # Lấy đường dẫn động tới file ONNX cùng thư mục với script này
     current_dir = os.path.dirname(os.path.abspath(__file__))
     model_path = os.path.join(current_dir, 'fraud_score_model.onnx')
     
     try:
-        # Tắt các cảnh báo của ONNX Runtime nếu có để giữ log sạch
         sess = ort.InferenceSession(model_path, providers=['CPUExecutionProvider'])
         
         input_name = sess.get_inputs()[0].name
         prob_name = sess.get_outputs()[1].name 
         
-        # Đảm bảo shape là (1, 11) và kiểu float32
         input_data = np.array(project_features).reshape(1, 11).astype(np.float32)
         
         pred_onx = sess.run([prob_name], {input_name: input_data})

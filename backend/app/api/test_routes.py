@@ -9,10 +9,10 @@ router = APIRouter(prefix="/test", tags=["TEST-ONLY"])
 def mock_payment_success(project_id: str, amount: float):
     if settings.ENV == "prod":
         raise HTTPException(status_code=404, detail="Not found")
-    p = next((proj for proj in store.projects if proj["id"] == project_id), None)
+    p = store.get_project_by_id(project_id)
     if not p:
         raise HTTPException(status_code=404, detail="Không tìm thấy dự án")
-    p["raised_amount"] = p.get("raised_amount", 0) + amount
-    if p["raised_amount"] >= p["target_amount"] and p["status"] == "active":
-        transition(p, "funded", actor="system:mock_payment")
+    store.update_project_raised_amount(project_id, amount)
+    # Reload project to get updated state
+    p = store.get_project_by_id(project_id)
     return {"message": "Mock payment thành công", "project": p}
