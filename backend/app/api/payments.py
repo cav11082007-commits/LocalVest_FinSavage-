@@ -10,9 +10,16 @@ import hashlib
 from app.config import settings
 from app.schemas.schemas import MoMoWebhookSchema, MockMoMoPaySchema
 from app.services.realtime import realtime_manager
+from app.services.notifications import notify
 from app.store import store
 
 router = APIRouter(prefix="/payments", tags=["3. Payment & Escrow Service"])
+
+# (Đã xoá GET /ledger/{project_id} — bản cũ của mình, dùng store.ledger không còn tồn
+# tại sau khi store.py chuyển hẳn sang SQLite thật của develop. Không còn ai gọi tới
+# endpoint này nữa: dashboard.html giờ dùng LV.getLedger() -> GET
+# /api/campaigns/{id}/ledger (đã có sẵn, dùng đúng store.get_ledger() thật) — giữ 1
+# đường lấy sổ cái duy nhất thay vì để 2 endpoint trùng việc, 1 cái còn hỏng.)
 
 @router.post("/momo-webhook")
 async def momo_webhook(data: MoMoWebhookSchema):
@@ -65,6 +72,12 @@ async def momo_webhook(data: MoMoWebhookSchema):
         "raisedTotal": project["raised_amount"],
         "targetTotal": project["target_amount"]
     })
+    await notify(
+        user_id=project.get("owner_id"),
+        title="Có khoản đóng góp mới",
+        message=f'{ledger_entry["user_name"]} vừa đóng góp {data.amount:,.0f}đ cho dự án "{project["name"]}".',
+        n_type="donation",
+    )
 
     return {"status": "success", "message": "Ghi nhận đóng góp Escrow thành công", "ledger": ledger_entry}
 

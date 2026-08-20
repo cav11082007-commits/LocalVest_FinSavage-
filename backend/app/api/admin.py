@@ -9,6 +9,7 @@ from app.schemas.schemas import AdminApproveSchema, AdminReleaseMilestoneSchema
 from app.core.security import get_current_user, require_admin
 from app.services.realtime import realtime_manager
 from app.core.campaign_state_machine import transition
+from app.services.notifications import notify
 from app.store import store
 from app.database.db import get_db_connection
 
@@ -62,18 +63,28 @@ def update_kyc_status(kyc_id: str, payload: dict, current_user: dict = Depends(r
     return {"message": f"KYC {status}"}
 
 @router.post("/approve-project")
-def admin_approve_project(data: AdminApproveSchema, current_user: dict = Depends(require_admin)):
+async def admin_approve_project(data: AdminApproveSchema, current_user: dict = Depends(require_admin)):
     p = store.get_project_by_id(data.projectId)
     if not p:
         raise HTTPException(status_code=404, detail="Không tìm thấy dự án")
     new_status = "active" if data.approve else "rejected"
-    # Wait, transition() updates the dictionary, but we need to save it to DB
-    # We can just call store.update_project_status instead of transition, 
-    # but transition has logic. We will call store.update_project_status directly.
+    # transition() cập nhật dict trong bộ nhớ nhưng không ghi DB — gọi thẳng
+    # store.update_project_status() để ghi DB thật, rồi tự cập nhật lại object đang giữ.
     store.update_project_status(data.projectId, new_status)
     p["status"] = new_status
-    return {"message": f"Dự án đã được {'duyệt active' if data.approve else 'từ chối'}", "project": p}
 
+    # Realtime + Notification (nhiệm vụ Bích — "đảm bảo tính real-time của ... luồng
+    # phê duyệt Admin"): trước đây chỉ release-milestone mới phát sự kiện.
+    event = "PROJECT_APPROVED" if data.approve else "PROJECT_REJECTED"
+    await realtime_manager.broadcast(event, {"projectId": p["id"], "projectName": p["name"]})
+    await notify(
+        user_id=p.get("owner_id"),
+        title="Dự án đã được duyệt" if data.approve else "Dự án bị từ chối",
+        message=f'Dự án "{p["name"]}" {"đã được duyệt và hiển thị công khai" if data.approve else "đã bị từ chối bởi quản trị viên"}.',
+        n_type="approval",
+    )
+
+    return {"message": f"Dự án đã được {'duyệt active' if data.approve else 'từ chối'}", "project": p}
 
 @router.post("/release-milestone")
 async def admin_release_milestone(data: AdminReleaseMilestoneSchema, current_user: dict = Depends(require_admin)):
@@ -116,5 +127,11 @@ async def admin_release_milestone(data: AdminReleaseMilestoneSchema, current_use
         "milestoneName": m["name"],
         "amount": m["target_amount"]
     })
+    await notify(
+        user_id=p.get("owner_id"),
+        title="Đã giải ngân một mốc",
+        message=f'Mốc "{m["name"]}" của dự án "{p["name"]}" vừa được giải ngân {m["target_amount"]:,.0f}đ.',
+        n_type="milestone",
+    )
 
     return {"message": "Giải ngân thành công!", "milestone": m, "ledger": disbursement_entry}
