@@ -138,13 +138,17 @@ async def disburse_milestone(project_id: str, payload: DisburseRequest):
         
     import random
     import json
-    from app.services.disbursement_auditor import evaluate_disbursement
+    from app.services.risk_score_checker import evaluate_disbursement
     
-    target = project.get("target_amount", 1)
+    target = float(project.get("target_amount") or 1.0)
     amt = float(m.get("target_amount") or m.get("amount") or 0)
+    
+    total_released = sum(float(ms.get("target_amount") or ms.get("amount") or 0) for ms in milestones if ms.get("status") == "released")
     raised = float(project.get("raised_amount") or 0)
-    if raised < amt:
-        raise HTTPException(status_code=400, detail=f"Số dư quỹ Escrow không đủ! (Quỹ hiện có: {raised:,.0f}đ, Cần rút: {amt:,.0f}đ)")
+    available_balance = raised - total_released
+    
+    if available_balance < amt:
+        raise HTTPException(status_code=400, detail=f"Số dư quỹ Escrow không đủ! (Khả dụng: {available_balance:,.0f}đ, Cần rút: {amt:,.0f}đ)")
         
     ratio = min(amt / target, 1.0) if target > 0 else 0.0
     
@@ -162,10 +166,12 @@ async def disburse_milestone(project_id: str, payload: DisburseRequest):
     if risk_score >= 50.0:
         flag = store.get_ai_flag(project_id)
         if flag:
-            flag["score"] = min(100, flag.get("score", 0) + 30)
-            reasons = flag.get("reason", "")
-            if "Bị AI chặn giải ngân" not in reasons:
-                flag["reason"] = reasons + " | Bị AI chặn giải ngân"
+            flag["fraud_score"] = min(100, flag.get("fraud_score", 0) + 30)
+            reasons = flag.get("reasons", [])
+            if not any("AI chặn" in r for r in reasons):
+                reasons.append("Bị AI chặn giải ngân (Risk Score cao)")
+            flag["reasons"] = reasons
+            flag["is_suspicious"] = True
             store.set_ai_flag(flag)
         raise HTTPException(status_code=403, detail=ai_report)
         

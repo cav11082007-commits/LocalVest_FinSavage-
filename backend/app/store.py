@@ -4,7 +4,7 @@ Architected by Senior Backend Architect for MVP Persistence.
 """
 
 import math
-import json
+import json; import sqlite3
 from datetime import datetime
 from typing import Dict, List, Any
 from app.core.security import hash_password
@@ -24,6 +24,7 @@ def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 class LocalVestStore:
     def __init__(self):
         self.otp_store: Dict[str, Any] = {}
+        self.image_hashes: List[Dict[str, Any]] = []
         if is_db_empty():
             self._seed_data()
 
@@ -323,6 +324,29 @@ class LocalVestStore:
         conn.close()
         return exists
         
+
+    def get_ai_flag(self, project_id: str):
+        conn = get_db_connection()
+        import sqlite3
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM ai_flags WHERE project_id = ?", (project_id,))
+        row = cur.fetchone()
+        conn.close()
+        if row:
+            import json; import sqlite3
+            return {
+                "id": row["id"],
+                "project_id": row["project_id"],
+                "score": row["fraud_score"],
+                "fraud_score": row["fraud_score"],
+                "is_suspicious": bool(row["is_suspicious"]),
+                "reason": json.loads(row["reasons"]) if row["reasons"] else [],
+                "reasons": json.loads(row["reasons"]) if row["reasons"] else [],
+                "status": row["status"]
+            }
+        return None
+
     def set_ai_flag(self, flag: dict):
         conn = get_db_connection()
         cur = conn.cursor()
