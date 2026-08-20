@@ -118,6 +118,7 @@ class ProjectResponseSchema(BaseModel):
     lng: float
     creator_name: str
     creator_verified: bool
+    creator_kyc_status: Optional[str] = None
     created_at: str
     updated_at: str
     milestones: List[MilestoneResponseSchema] = []

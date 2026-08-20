@@ -218,7 +218,12 @@ class LocalVestStore:
     def get_project_by_id(self, project_id: str):
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute("SELECT * FROM projects WHERE id = ?", (project_id,))
+        cur.execute("""
+            SELECT p.*, u.kyc_status as creator_kyc_status 
+            FROM projects p 
+            LEFT JOIN users u ON p.owner_id = u.id 
+            WHERE p.id = ?
+        """, (project_id,))
         row = cur.fetchone()
         if not row:
             conn.close()
