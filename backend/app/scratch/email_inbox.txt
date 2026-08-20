@@ -43,3 +43,23 @@ SUBJECT: [LocalVest] Mã OTP xác thực của bạn là: 564383
 OTP CODE: 564383
 ----------------------------------------
 
+=== EMAIL SENT TO: admin@gmail.com ===
+SUBJECT: [LocalVest] Mã OTP xác thực của bạn là: 233499
+OTP CODE: 233499
+----------------------------------------
+
+=== EMAIL SENT TO: admin@gmail.com ===
+SUBJECT: [LocalVest] Mã OTP xác thực của bạn là: 610345
+OTP CODE: 610345
+----------------------------------------
+
+=== EMAIL SENT TO: phongvu@gmail.com ===
+SUBJECT: [LocalVest] Mã OTP xác thực của bạn là: 106154
+OTP CODE: 106154
+----------------------------------------
+
+=== EMAIL SENT TO: admin@gmail.com ===
+SUBJECT: [LocalVest] Mã OTP xác thực của bạn là: 769045
+OTP CODE: 769045
+----------------------------------------
+

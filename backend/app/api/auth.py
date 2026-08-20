@@ -264,7 +264,7 @@ def login(data: LoginSchema):
  
 @router.get("/me")
 def get_me(current_user: dict = Depends(get_current_user)):
-    user = store.get_user(current_user["sub"])
+    user = store.get_user_by_id(current_user["sub"])
     if not user:
         raise HTTPException(status_code=404, detail="Không tìm thấy người dùng")
     safe_user = {k: v for k, v in user.items() if k != "password_hash"}
