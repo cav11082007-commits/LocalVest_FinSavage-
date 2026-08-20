@@ -379,7 +379,7 @@
 
     <div style="margin-bottom:16px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
       <select class="escrow-select" id="ledger-project-select"></select>
-      <button class="btn-admin btn-gold" id="release-milestone-btn">⚡ Giải ngân Mốc</button>
+      
     </div>
 
     <div class="admin-table-wrap" style="margin-bottom:24px;">
@@ -416,14 +416,7 @@
   </div>
 </div>
 
-<!-- MODAL: Release Milestone -->
-<div class="modal-overlay" id="milestone-modal">
-  <div class="modal-box-dark">
-    <div class="modal-title-dark">⚡ Chọn Mốc để Giải ngân</div>
-    <div id="milestone-select-list" style="display:flex;flex-direction:column;gap:10px;max-height:300px;overflow-y:auto;"></div>
-    <div class="modal-actions">
-      <button class="btn-admin btn-gold" id="milestone-cancel">Đóng</button>
-    </div>
+
   </div>
 </div>
 
@@ -507,9 +500,9 @@
 
   // ===== HELPER =====
   function fraudBadge(score) {
-    if (score < 30) {
+    if (score <= 30) {
       return `<span class="badge badge-success" style="background:rgba(40,180,100,0.2);color:#55e09a;border:1px solid rgba(40,180,100,0.4);">🟢 ${score}% (An toàn)</span>`;
-    } else if (score >= 30 && score < 50) {
+    } else if (score <= 49) {
       return `<span class="badge badge-warning" style="background:rgba(212,168,67,0.2);color:#ffc947;border:1px solid rgba(212,168,67,0.4);">🟡 ${score}% (Cần xem xét)</span>`;
     } else {
       return `<span class="badge badge-danger" style="background:rgba(220,50,50,0.2);color:#ff7070;border:1px solid rgba(220,50,50,0.4);">🔴 ${score}% (Rủi ro cao)</span>`;
@@ -1076,28 +1069,65 @@
       </tr>`).join('');
   }
 
-  function releaseMilestone(projectId, milestoneIdx) {
-    const projects = LV.getProjects();
-    const p = projects.find(pr => pr.id === projectId);
-    if (!p || !p.milestones[milestoneIdx]) return;
-    const m = p.milestones[milestoneIdx];
-    if (m.status === 'released') { LV.toast('Mốc này đã được giải ngân!', 'error'); return; }
-    m.status = 'released';
-    LV.saveProjects(projects);
-    LV.pushLedger(projectId, {
-      time: new Date().toISOString(), amount: m.amount || m.target_amount, type: 'out',
-      desc: `Giải ngân mốc "${m.name}"`,
-    });
-    LV.toast(`Đã giải ngân mốc "${m.name}" — ghi nhận vào Sổ cái Escrow!`, 'success');
-    renderLedgerTab();
+  async function releaseMilestone(projectId, milestoneIdx) {
+    const btn = event ? event.currentTarget : null;
+    const ogText = btn ? btn.innerHTML : 'Giải ngân';
+    if(btn) { btn.innerHTML = '🤖 AI đang quét...'; btn.disabled = true; }
+    
+    try {
+      const u = LV.getUser();
+      const res = await fetch(`/api/payments/disburse/${projectId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${u ? u.token : ''}`
+        },
+        body: JSON.stringify({ milestone_index: milestoneIdx })
+      });
+      
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 403 && data.risk_score_percent !== undefined) {
+          showAiShieldAlert(data);
+        } else {
+          LV.toast(data.detail || 'Lỗi giải ngân', 'error');
+        }
+      } else {
+        LV.toast('Đã giải ngân mốc — ghi nhận vào Sổ cái Escrow!', 'success');
+        renderLedgerTab();
+      }
+    } catch(err) {
+      LV.toast('Lỗi kết nối máy chủ', 'error');
+    } finally {
+      if(btn) { btn.innerHTML = ogText; btn.disabled = false; }
+    }
+  }
+  
+  function showAiShieldAlert(aiReport) {
+     const reasonsHtml = aiReport.explanations.map(e => `<li style="margin-bottom:6px;">🚨 ${e}</li>`).join('');
+     let html = `
+       <div id="ai-shield-alert" class="modal-overlay open" style="z-index:9999; background: rgba(0,0,0,0.85); display:flex;">
+         <div class="modal-box" style="border: 2px solid #ff4d4d; box-shadow: 0 0 40px rgba(255,77,77,0.4); max-width: 500px; width: 90%;">
+           <h2 style="color: #ff4d4d; margin-top:0; font-size: 22px; display:flex; align-items:center; gap:8px;">
+              🛡️ LÁ CHẮN AI KÍCH HOẠT!
+           </h2>
+           <p style="color: #ffc947; margin-bottom: 20px;">Giao dịch bị chặn do AI phát hiện rủi ro tài chính cao.</p>
+           <div style="background: #2a1111; padding: 20px; border-radius: 8px; margin: 16px 0; border: 1px solid #ff4d4d40;">
+             <div style="font-size: 32px; color: #ff4d4d; font-weight: bold; text-align: center; text-shadow: 0 0 10px rgba(255,77,77,0.5);">Risk Score: ${aiReport.risk_score_percent}%</div>
+             <ul style="color: #e0e6f0; margin-top: 16px; font-size: 14px; line-height: 1.5; padding-left: 20px;">${reasonsHtml}</ul>
+           </div>
+           <div style="text-align: right; margin-top: 24px;">
+             <button class="btn-admin" style="background:#333; color: white;" onclick="document.getElementById('ai-shield-alert').remove()">Đóng & Kiểm tra lại</button>
+           </div>
+         </div>
+       </div>
+     `;
+     document.body.insertAdjacentHTML('beforeend', html);
   }
 
-  document.getElementById('release-milestone-btn').addEventListener('click', () => {
-    document.getElementById('milestone-modal').classList.add('open');
-  });
-  document.getElementById('milestone-cancel').addEventListener('click', () => {
-    document.getElementById('milestone-modal').classList.remove('open');
-  });
+
+  
+  
 
   // ===== INIT =====
   initOverviewCharts();

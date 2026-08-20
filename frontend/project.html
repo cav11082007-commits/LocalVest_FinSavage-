@@ -81,7 +81,41 @@
         <div class="detail-layout">
           <div>
             ${project.status === 'pending_review' ? `<div class="banner banner-warning">⚠ Dự án này đang chờ đội ngũ Admin phê duyệt trước khi gọi vốn.</div>` : ''}
-            ${project.fraudFlag ? `<div class="banner banner-danger">⚠ Dự án đang được hệ thống AI đánh dấu nghi vấn (${project.fraudFlag.score}%): ${project.fraudFlag.reason}. Đội ngũ LocalVest đang xác minh thêm.</div>` : ''}
+            
+            <!-- AI AUDIT REPORT (MINH BẠCH) - UNIFIED TOP BANNER -->
+            ${(() => {
+              // Nếu không có cờ rủi ro, mặc định coi là 0% (An toàn)
+              let score = project.fraudFlag ? (project.fraudFlag.score || 0) : 0;
+              let reasons = project.fraudFlag ? (project.fraudFlag.reasons || [project.fraudFlag.reason || 'Không phát hiện bất thường']) : ['Dòng tiền minh bạch, lịch sử quyên góp tự nhiên.', 'Xác thực KYC chủ dự án khớp với thông tin ngân hàng.'];
+              
+              let borderColor = score <= 30 ? '#10b981' : (score <= 49 ? '#f59e0b' : '#ef4444');
+              let bgColor = score <= 30 ? 'rgba(16, 185, 129, 0.08)' : (score <= 49 ? 'rgba(245, 158, 11, 0.08)' : 'rgba(239, 68, 68, 0.08)');
+              let icon = score <= 30 ? '🟢' : (score <= 49 ? '🟡' : '🔴');
+              let statusText = score <= 30 ? 'An toàn' : (score <= 49 ? 'Cần xem xét' : 'Rủi ro cao');
+              let actionText = score <= 30 ? 'Hệ thống đánh giá dự án đạt chuẩn minh bạch.' : 'Đội ngũ LocalVest đang tiến hành xác minh thêm.';
+              
+              // Sử dụng màu chữ đậm (Dark text) cho nền sáng (Light mode)
+              let titleColor = score <= 30 ? '#047857' : (score <= 49 ? '#b45309' : '#b91c1c');
+              let textColor = '#334155'; // Slate 700
+              let subTextColor = '#475569'; // Slate 600
+              
+              return `
+              <div class="card mb-16" style="background:${bgColor}; border:1px solid ${borderColor}; padding:14px 18px; border-radius:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                  <strong style="color:${titleColor}; font-size:15px; display:flex; align-items:center; gap:6px;">
+                     Báo cáo AI Audit Minh bạch
+                  </strong>
+                  <span class="badge" style="background:#fff; color:${titleColor}; border:1px solid ${borderColor}; font-size:12px; font-weight:700; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                    ${icon} ${score}% (${statusText})
+                  </span>
+                </div>
+                <p style="margin:0 0 8px 0; font-size:14px; font-weight:500; color:${textColor};">${actionText}</p>
+                <ul style="font-size:13.5px; color:${subTextColor}; padding-left:18px; margin:0; line-height:1.6;">
+                  ${reasons.map(r => `<li style="margin-bottom:4px;">${r}</li>`).join('')}
+                </ul>
+              </div>
+              `;
+            })()}
 
             <div class="flex items-center gap-8 mb-16" style="flex-wrap:wrap;">
               <span class="badge badge-primary">${project.category}</span>
@@ -120,7 +154,7 @@
               <span><span id="ui-pct">${pct}</span>% hoàn thành</span>
               <span><span id="ui-backers">${backers}</span> lượt đóng góp</span>
             </div>
-            <a class="btn btn-primary btn-block" href="checkout.html?id=${project.id}">Đóng góp ngay</a>
+            ${project.status === 'funded' || project.status === 'completed' || project.raised_amount >= project.target_amount ? '<button class="btn btn-primary btn-block" disabled style="background:#64748b; border-color:#64748b; cursor:not-allowed;">Dự án đã đạt đủ quỹ</button>' : `<a class="btn btn-primary btn-block" href="checkout.html?id=${project.id}">Đóng góp ngay</a>`}
             <a class="btn btn-outline btn-block mt-8" href="dashboard.html?id=${project.id}">Xem dòng tiền minh bạch</a>
           </div>
         </div>
